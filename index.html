@@ -28,7 +28,7 @@
             cursor: pointer;
             color: #6c757d;
         }
-        .form-section {
+        .form-section, .table-section {
             background-color: white;
             padding: 2rem;
             border-radius: 0.5rem;
@@ -42,6 +42,12 @@
             padding-left: 20px;
             font-size: 0.875rem;
             color: #6c757d;
+        }
+        .table-actions .btn {
+            margin-right: 5px;
+        }
+        .inline-select {
+            min-width: 120px;
         }
     </style>
 </head>
@@ -125,85 +131,26 @@
             
             <hr>
 
-            <!-- Formulario para añadir/editar pacientes -->
-            <section class="form-section">
-                <h3 id="form-title">Añadir Paciente</h3>
-                <form id="patient-form">
-                    <input type="hidden" id="patient-id">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label for="localizacion" class="form-label">Localización</label>
-                            <select id="localizacion" class="form-select" required>
-                                <option value="Urgencias">Urgencias</option>
-                                <option value="Planta">Planta</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <label for="sitio" class="form-label">Sitio (Cama/Box)</label>
-                            <input type="text" id="sitio" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="nombre" class="form-label">Nombre y Apellidos</label>
-                            <input type="text" id="nombre" class="form-control" required>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <label for="unidad" class="form-label">Unidad</label>
-                            <input type="text" id="unidad" class="form-control">
-                        </div>
-                         <div class="col-md-5 mb-3">
-                            <label for="diagnostico" class="form-label">Diagnóstico</label>
-                            <input type="text" id="diagnostico" class="form-control" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="tratamiento" class="form-label">Tratamiento</label>
-                            <select id="tratamiento" class="form-select" required>
-                                <option value="Médico">Médico</option>
-                                <option value="IQ Local">IQ Local</option>
-                                <option value="IQ General">IQ General</option>
-                            </select>
-                        </div>
-                    </div>
-                     <div class="mb-3">
-                        <label for="comentario" class="form-label">Comentario</label>
-                        <textarea id="comentario" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div class="row align-items-center">
-                        <div class="col-md-6">
-                             <div class="form-check form-switch mb-3">
-                                <input class="form-check-input" type="checkbox" id="ingreso">
-                                <label class="form-check-label" for="ingreso">Pendiente de Ingreso / Queda para siguiente guardia</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6 text-end">
-                             <button type="submit" class="btn btn-primary">Guardar Paciente</button>
-                             <button type="button" id="cancel-edit-btn" class="btn btn-secondary" style="display:none;">Cancelar Edición</button>
-                        </div>
-                    </div>
-                </form>
-            </section>
-            
-            <hr>
-
             <!-- Lista de Pacientes -->
-            <section>
+            <section class="table-section">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h3>Pacientes de la Guardia</h3>
-                    <button id="export-pdf-btn" class="btn btn-success"><i class="bi bi-file-earmark-pdf"></i> Exportar a PDF</button>
+                    <div>
+                        <button id="export-pdf-btn" class="btn btn-success"><i class="bi bi-file-earmark-pdf"></i> Exportar a PDF</button>
+                        <button id="add-patient-btn" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Añadir Paciente</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
-                    <table id="patient-table" class="table table-striped table-hover">
+                    <table id="patient-table" class="table table-striped table-hover align-middle">
                         <thead>
                             <tr>
                                 <th>Localización</th>
                                 <th>Sitio</th>
                                 <th>Nombre y Apellidos</th>
-                                <th>Unidad</th>
                                 <th>Diagnóstico</th>
-                                <th>Tratamiento</th>
                                 <th>Comentario</th>
-                                <th>Pendiente</th>
+                                <th>Estado</th>
+                                <th>Tratamiento</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -231,6 +178,80 @@
         </div>
     </div>
 
+    <!-- Modal para Añadir/Editar Paciente -->
+    <div class="modal fade" id="patient-modal" tabindex="-1" aria-labelledby="patientModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="patientModalLabel">Añadir Paciente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="patient-form">
+                        <input type="hidden" id="patient-id">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="nombre" class="form-label">Nombre y Apellidos</label>
+                                <input type="text" id="nombre" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="diagnostico" class="form-label">Diagnóstico</label>
+                                <input type="text" id="diagnostico" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="localizacion" class="form-label">Localización</label>
+                                <select id="localizacion" class="form-select" required>
+                                    <option value="Urgencias">Urgencias</option>
+                                    <option value="Planta">Planta</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="sitio" class="form-label">Sitio (Cama/Box)</label>
+                                <input type="text" id="sitio" class="form-control" required>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="unidad" class="form-label">Unidad</label>
+                                <input type="text" id="unidad" class="form-control">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="estado" class="form-label">Estado</label>
+                                <select id="estado" class="form-select" required>
+                                    <option value="Pendiente">Pendiente</option>
+                                    <option value="Ingresado">Ingresado</option>
+                                    <option value="Alta">Alta</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="tratamiento" class="form-label">Tratamiento</label>
+                                <select id="tratamiento" class="form-select" required>
+                                    <option value="Médico">Médico</option>
+                                    <option value="IQ Local">IQ Local</option>
+                                    <option value="IQ General">IQ General</option>
+                                </select>
+                            </div>
+                        </div>
+                         <div class="mb-3">
+                            <label for="comentario" class="form-label">Comentario</label>
+                            <textarea id="comentario" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
     <!-- SDKs de Firebase -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -255,7 +276,7 @@
         orderBy
       } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-      // Configuración de Firebase. Es seguro que esté aquí para apps web.
+      // Configuración de Firebase.
       const firebaseConfig = {
         apiKey: "AIzaSyBHXJyws_bbbgn8qfkhSwtsqMI6KD8wT_c",
         authDomain: "estadillo-e5cdc.firebaseapp.com",
@@ -273,10 +294,6 @@
       // --- REFERENCIAS A ELEMENTOS DEL DOM ---
       const authContainer = document.getElementById('auth-container');
       const appContainer = document.getElementById('app-container');
-      const loginView = document.getElementById('login-view');
-      const registerView = document.getElementById('register-view');
-      const showRegisterLink = document.getElementById('show-register');
-      const showLoginLink = document.getElementById('show-login');
       const loginForm = document.getElementById('login-form');
       const registerForm = document.getElementById('register-form');
       const logoutBtn = document.getElementById('logout-btn');
@@ -285,140 +302,85 @@
       const guardiaDateEl = document.getElementById('guardia-date');
       const changeGuardBtn = document.getElementById('change-guard-btn');
       const exportPdfBtn = document.getElementById('export-pdf-btn');
-      const cancelEditBtn = document.getElementById('cancel-edit-btn');
-      const formTitle = document.getElementById('form-title');
+      const addPatientBtn = document.getElementById('add-patient-btn');
+      
+      const patientModalEl = document.getElementById('patient-modal');
+      const patientModal = new bootstrap.Modal(patientModalEl);
+      const patientModalLabel = document.getElementById('patientModalLabel');
 
       let currentGuardiaId = null;
-      let pacientesCache = []; // Caché local de pacientes para cálculos y exportación
+      let pacientesCache = []; // Caché local de pacientes
       
       // --- LÓGICA DE AUTENTICACIÓN ---
-
-      // Observador del estado de autenticación
       onAuthStateChanged(auth, (user) => {
-          if (user) {
-              if (user.emailVerified) {
-                  // Si el usuario está logueado y verificado, muestra la app
-                  console.log("Usuario verificado, mostrando app.");
-                  authContainer.style.display = 'none';
-                  appContainer.style.display = 'block';
-                  loadGuardiaData();
-              } else {
-                  // Si no está verificado, muestra mensaje para que revise su email
-                  authContainer.style.display = 'block';
-                  appContainer.style.display = 'none';
-                  loginView.innerHTML = `
-                      <div class="alert alert-warning">
-                          Se ha enviado un correo de verificación a <strong>${user.email}</strong>. 
-                          Por favor, revisa tu bandeja de entrada y haz clic en el enlace para poder acceder.
-                      </div>
-                      <button id="resend-verification" class="btn btn-secondary mb-2">Reenviar correo</button>
-                      <button id="force-logout" class="btn btn-danger">Cancelar</button>
-                  `;
-                  document.getElementById('force-logout').addEventListener('click', () => signOut(auth));
-                  document.getElementById('resend-verification').addEventListener('click', () => {
-                      sendEmailVerification(user).then(() => alert('Correo de verificación reenviado.'));
-                  });
-              }
+          if (user && user.emailVerified) {
+              authContainer.style.display = 'none';
+              appContainer.style.display = 'block';
+              loadGuardiaData();
+          } else if (user && !user.emailVerified) {
+              authContainer.style.display = 'block';
+              appContainer.style.display = 'none';
+              document.getElementById('login-view').innerHTML = `
+                  <div class="alert alert-warning">
+                      Se ha enviado un correo de verificación a <strong>${user.email}</strong>. Por favor, revísalo.
+                  </div>
+                  <button id="resend-verification" class="btn btn-secondary mb-2">Reenviar correo</button>
+                  <button id="force-logout" class="btn btn-danger">Cancelar</button>
+              `;
+              document.getElementById('force-logout').addEventListener('click', () => signOut(auth));
+              document.getElementById('resend-verification').addEventListener('click', () => sendEmailVerification(user).then(() => alert('Correo reenviado.')));
           } else {
-              // Si no hay usuario, muestra la pantalla de login/registro
-              console.log("Usuario no autenticado.");
               authContainer.style.display = 'block';
               appContainer.style.display = 'none';
           }
       });
       
-      // Función para mostrar/ocultar contraseña
       const togglePasswordVisibility = (inputId, toggleId) => {
           const passwordInput = document.getElementById(inputId);
           const toggleIcon = document.getElementById(toggleId);
-          const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-          passwordInput.setAttribute('type', type);
+          passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
           toggleIcon.classList.toggle('bi-eye-slash');
           toggleIcon.classList.toggle('bi-eye');
-      }
-
+      };
       document.getElementById('toggle-login-password').addEventListener('click', () => togglePasswordVisibility('login-password', 'toggle-login-password'));
       document.getElementById('toggle-register-password').addEventListener('click', () => togglePasswordVisibility('register-password', 'toggle-register-password'));
 
-      // Evento de envío del formulario de login
       loginForm.addEventListener('submit', (e) => {
           e.preventDefault();
-          const email = document.getElementById('login-email').value;
-          const password = document.getElementById('login-password').value;
-          const errorDiv = document.getElementById('login-error');
-
-          signInWithEmailAndPassword(auth, email, password)
-              .catch(error => {
-                  console.error("Error de login:", error.message);
-                  errorDiv.textContent = 'Email o contraseña incorrectos.';
-              });
+          signInWithEmailAndPassword(auth, loginForm.email.value, loginForm.password.value)
+              .catch(err => document.getElementById('login-error').textContent = 'Email o contraseña incorrectos.');
       });
       
-      // Evento de envío del formulario de registro
       registerForm.addEventListener('submit', (e) => {
           e.preventDefault();
-          const email = document.getElementById('register-email').value;
-          const password = document.getElementById('register-password').value;
+          const email = registerForm.email.value;
+          const password = registerForm.password.value;
           const errorDiv = document.getElementById('register-error');
-
-          // Validación de dominio y contraseña
           if (!email.endsWith('@ssib.es')) {
-              errorDiv.textContent = 'El email debe pertenecer al dominio corporativo @ssib.es.';
+              errorDiv.textContent = 'El email debe ser del dominio @ssib.es.';
               return;
           }
-          const passwordRules = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-          if(!passwordRules.test(password)){
-              errorDiv.textContent = 'La contraseña no cumple los requisitos de seguridad.';
+          if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password)) {
+              errorDiv.textContent = 'La contraseña no cumple los requisitos.';
               return;
           }
-
-          // Creación del usuario
           createUserWithEmailAndPassword(auth, email, password)
-              .then(userCredential => {
-                  sendEmailVerification(userCredential.user)
-                      .then(() => {
-                          alert("¡Registro exitoso! Se ha enviado un correo de verificación. Por favor, revísalo para activar tu cuenta.");
-                          signOut(auth); // Desloguear para forzar verificación
-                      });
-              })
-              .catch(error => {
-                  console.error("Error de registro:", error.message);
-                  if (error.code === 'auth/email-already-in-use') {
-                      errorDiv.textContent = 'Este email ya está registrado. Intenta iniciar sesión.';
-                  } else {
-                      errorDiv.textContent = 'Ha ocurrido un error durante el registro.';
-                  }
-              });
+              .then(cred => sendEmailVerification(cred.user).then(() => {
+                  alert("¡Registro exitoso! Revisa tu email para verificar la cuenta.");
+                  signOut(auth);
+              }))
+              .catch(err => errorDiv.textContent = err.code === 'auth/email-already-in-use' ? 'Email ya registrado.' : 'Error en el registro.');
       });
 
-      // Botón de cerrar sesión
-      logoutBtn.addEventListener('click', () => {
-          signOut(auth).then(() => {
-             location.reload(); // Recargar la página para limpiar todo el estado
-          });
-      });
-
-      // Links para cambiar entre login y registro
-      showRegisterLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          loginView.style.display = 'none';
-          registerView.style.display = 'block';
-      });
-
-      showLoginLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          registerView.style.display = 'none';
-          loginView.style.display = 'block';
-      });
+      logoutBtn.addEventListener('click', () => signOut(auth).then(() => location.reload()));
+      document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').style.display = 'none'; document.getElementById('register-view').style.display = 'block'; });
+      document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('register-view').style.display = 'none'; document.getElementById('login-view').style.display = 'block'; });
       
       // --- LÓGICA DE LA APLICACIÓN ---
       
-      // Carga o crea una nueva guardia al iniciar
       async function loadGuardiaData() {
           currentGuardiaId = localStorage.getItem('currentGuardiaId');
           let guardiaStartDate = localStorage.getItem('currentGuardiaStartDate');
-
-          // Si no hay una guardia activa en el almacenamiento local, se crea una nueva
           if (!currentGuardiaId) {
               const newGuardiaRef = doc(collection(db, 'guardias_activas'));
               currentGuardiaId = newGuardiaRef.id;
@@ -426,62 +388,104 @@
               localStorage.setItem('currentGuardiaId', currentGuardiaId);
               localStorage.setItem('currentGuardiaStartDate', guardiaStartDate);
           }
-          
           const date = new Date(guardiaStartDate);
           guardiaDateEl.textContent = `Guardia del: ${date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
-          
           loadPatients();
       }
 
-      // Carga los pacientes de la guardia activa desde Firestore
       async function loadPatients() {
         if (!currentGuardiaId) return;
         const q = query(collection(db, 'guardias_activas', currentGuardiaId, 'pacientes'), orderBy("nombre"));
-        
         try {
-            const querySnapshot = await getDocs(q);
-            pacientesCache = [];
-            patientTableBody.innerHTML = ''; // Limpiar tabla antes de renderizar
-            querySnapshot.forEach(doc => {
-                const paciente = { id: doc.id, ...doc.data() };
-                pacientesCache.push(paciente);
-                renderPatient(paciente);
-            });
+            const snapshot = await getDocs(q);
+            pacientesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            patientTableBody.innerHTML = '';
+            pacientesCache.forEach(renderPatient);
             updateSummary();
-        } catch(error) {
-            console.error("Error cargando pacientes: ", error);
-        }
+        } catch(error) { console.error("Error cargando pacientes: ", error); }
       }
 
-      // Renderiza una fila de paciente en la tabla
       function renderPatient(paciente) {
         const row = document.createElement('tr');
         row.setAttribute('data-id', paciente.id);
+        
+        const createSelect = (options, selectedValue, field) => {
+            const select = document.createElement('select');
+            select.className = 'form-select form-select-sm inline-select';
+            select.setAttribute('data-field', field);
+            options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt;
+                option.textContent = opt;
+                if (opt === selectedValue) option.selected = true;
+                select.appendChild(option);
+            });
+            select.addEventListener('change', (e) => handleInlineUpdate(paciente.id, field, e.target.value));
+            return select.outerHTML;
+        };
+
         row.innerHTML = `
             <td>${paciente.localizacion}</td>
             <td>${paciente.sitio}</td>
             <td>${paciente.nombre}</td>
-            <td>${paciente.unidad || ''}</td>
             <td>${paciente.diagnostico}</td>
-            <td>${paciente.tratamiento}</td>
             <td>${paciente.comentario || ''}</td>
-            <td>${paciente.ingreso ? '<i class="bi bi-check-circle-fill text-warning"></i>' : '<i class="bi bi-x-circle text-success"></i>'}</td>
-            <td>
-                <button class="btn btn-sm btn-outline-primary edit-btn" data-id="${paciente.id}"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${paciente.id}"><i class="bi bi-trash"></i></button>
+            <td>${createSelect(['Pendiente', 'Ingresado', 'Alta'], paciente.estado, 'estado')}</td>
+            <td>${createSelect(['Médico', 'IQ Local', 'IQ General'], paciente.tratamiento, 'tratamiento')}</td>
+            <td class="table-actions">
+                <button class="btn btn-sm btn-outline-primary edit-btn"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-sm btn-outline-danger delete-btn"><i class="bi bi-trash"></i></button>
             </td>
         `;
         patientTableBody.appendChild(row);
 
-        // Añadir listeners a los botones de la fila
-        row.querySelector('.edit-btn').addEventListener('click', handleEdit);
-        row.querySelector('.delete-btn').addEventListener('click', handleDelete);
+        row.querySelector('.edit-btn').addEventListener('click', () => handleEdit(paciente.id));
+        row.querySelector('.delete-btn').addEventListener('click', () => handleDelete(paciente.id));
       }
       
-      // Maneja el envío del formulario para crear o editar un paciente
+      async function handleInlineUpdate(id, field, value) {
+        const patientRef = doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', id);
+        try {
+            await updateDoc(patientRef, { [field]: value });
+            // Actualizar caché local
+            const patientIndex = pacientesCache.findIndex(p => p.id === id);
+            if (patientIndex > -1) {
+                pacientesCache[patientIndex][field] = value;
+            }
+            updateSummary(); // Recalcular resumen si es necesario
+        } catch (error) {
+            console.error("Error en actualización rápida: ", error);
+            alert('No se pudo guardar el cambio.');
+        }
+      }
+
+      addPatientBtn.addEventListener('click', () => {
+          patientForm.reset();
+          document.getElementById('patient-id').value = '';
+          patientModalLabel.textContent = 'Añadir Paciente';
+          patientModal.show();
+      });
+
+      function handleEdit(id) {
+        const paciente = pacientesCache.find(p => p.id === id);
+        if (paciente) {
+            document.getElementById('patient-id').value = paciente.id;
+            document.getElementById('nombre').value = paciente.nombre;
+            document.getElementById('diagnostico').value = paciente.diagnostico;
+            document.getElementById('localizacion').value = paciente.localizacion;
+            document.getElementById('sitio').value = paciente.sitio;
+            document.getElementById('unidad').value = paciente.unidad;
+            document.getElementById('estado').value = paciente.estado;
+            document.getElementById('tratamiento').value = paciente.tratamiento;
+            document.getElementById('comentario').value = paciente.comentario;
+            
+            patientModalLabel.textContent = 'Editar Paciente';
+            patientModal.show();
+        }
+      }
+
       patientForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const id = document.getElementById('patient-id').value;
         const pacienteData = {
             localizacion: document.getElementById('localizacion').value,
@@ -491,175 +495,99 @@
             diagnostico: document.getElementById('diagnostico').value,
             tratamiento: document.getElementById('tratamiento').value,
             comentario: document.getElementById('comentario').value,
-            ingreso: document.getElementById('ingreso').checked,
+            estado: document.getElementById('estado').value,
         };
 
         try {
-            if (id) { // Si hay ID, actualiza el paciente existente
-                const patientRef = doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', id);
-                await updateDoc(patientRef, pacienteData);
-                alert('Paciente actualizado con éxito.');
-            } else { // Si no, crea uno nuevo
+            if (id) {
+                await updateDoc(doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', id), pacienteData);
+            } else {
                 await addDoc(collection(db, 'guardias_activas', currentGuardiaId, 'pacientes'), pacienteData);
             }
-            patientForm.reset();
-            cancelEditBtn.click(); // Resetea el estado del formulario
-            loadPatients(); // Recarga la lista de pacientes
-        } catch (error) {
-            console.error("Error guardando paciente: ", error);
-            alert('Hubo un error al guardar el paciente.');
-        }
-      });
-      
-      // Carga los datos de un paciente en el formulario para editarlo
-      function handleEdit(e) {
-        const id = e.currentTarget.getAttribute('data-id');
-        const paciente = pacientesCache.find(p => p.id === id);
-        
-        if (paciente) {
-            document.getElementById('patient-id').value = paciente.id;
-            document.getElementById('localizacion').value = paciente.localizacion;
-            document.getElementById('sitio').value = paciente.sitio;
-            document.getElementById('nombre').value = paciente.nombre;
-            document.getElementById('unidad').value = paciente.unidad;
-            document.getElementById('diagnostico').value = paciente.diagnostico;
-            document.getElementById('tratamiento').value = paciente.tratamiento;
-            document.getElementById('comentario').value = paciente.comentario;
-            document.getElementById('ingreso').checked = paciente.ingreso;
-
-            formTitle.textContent = "Editar Paciente";
-            cancelEditBtn.style.display = 'inline-block';
-            window.scrollTo(0, 0); // Sube al inicio de la página para ver el formulario
-        }
-      }
-
-      // Cancela la edición y limpia el formulario
-      cancelEditBtn.addEventListener('click', () => {
-        patientForm.reset();
-        document.getElementById('patient-id').value = '';
-        formTitle.textContent = "Añadir Paciente";
-        cancelEditBtn.style.display = 'none';
+            patientModal.hide();
+            loadPatients();
+        } catch (error) { console.error("Error guardando paciente: ", error); }
       });
 
-      // Borra un paciente de la base de datos
-      async function handleDelete(e) {
-        const id = e.currentTarget.getAttribute('data-id');
+      async function handleDelete(id) {
         if (confirm('¿Estás seguro de que quieres borrar este registro?')) {
             try {
                 await deleteDoc(doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', id));
                 loadPatients();
-            } catch (error) {
-                console.error("Error borrando paciente: ", error);
-                alert("No se pudo borrar el registro.");
-            }
+            } catch (error) { console.error("Error borrando paciente: ", error); }
         }
       }
 
-      // Actualiza el resumen de estadísticas
       function updateSummary() {
         const total = pacientesCache.length;
         const urgencias = pacientesCache.filter(p => p.localizacion === 'Urgencias').length;
-        const planta = total - urgencias;
         const iqLocal = pacientesCache.filter(p => p.tratamiento === 'IQ Local').length;
         const iqGeneral = pacientesCache.filter(p => p.tratamiento === 'IQ General').length;
-
         document.getElementById('total-patients').textContent = total;
         document.getElementById('urgencias-patients').textContent = urgencias;
-        document.getElementById('planta-patients').textContent = planta;
+        document.getElementById('planta-patients').textContent = total - urgencias;
         document.getElementById('total-iq').textContent = iqLocal + iqGeneral;
         document.getElementById('iq-local').textContent = iqLocal;
         document.getElementById('iq-general').textContent = iqGeneral;
       }
 
-      // Lógica para finalizar una guardia y empezar una nueva
       changeGuardBtn.addEventListener('click', async () => {
-          if (!confirm('¿Estás seguro de finalizar la guardia actual? Esta acción archivará los datos y no se puede deshacer.')) {
-              return;
-          }
-
+          if (!confirm('¿Finalizar la guardia actual? Se archivarán los datos y los pacientes pendientes pasarán a la siguiente.')) return;
           try {
-            // 1. Archivar la guardia actual en una nueva colección
-            const fechaArchivo = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+            const fechaArchivo = new Date().toISOString().split('T')[0];
             const archivoRef = doc(db, 'guardias_archivadas', `${fechaArchivo}_${currentGuardiaId}`);
-            
             const batch = writeBatch(db);
-            batch.set(archivoRef, {
-                fecha: new Date(localStorage.getItem('currentGuardiaStartDate')),
-                pacientes: pacientesCache
-            });
+            batch.set(archivoRef, { fecha: new Date(localStorage.getItem('currentGuardiaStartDate')), pacientes: pacientesCache });
             
-            // 2. Borrar todos los documentos de la subcolección de la guardia activa
-            pacientesCache.forEach(p => {
-                batch.delete(doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', p.id));
-            });
+            pacientesCache.forEach(p => batch.delete(doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', p.id)));
 
-            // 3. Crear la nueva guardia
             const newGuardiaRef = doc(collection(db, 'guardias_activas'));
             const newGuardiaId = newGuardiaRef.id;
-            const newStartDate = new Date().toISOString();
             
-            // 4. Mover los pacientes pendientes a la nueva guardia
-            const pacientesPendientes = pacientesCache.filter(p => p.ingreso);
+            const pacientesPendientes = pacientesCache.filter(p => p.estado === 'Pendiente');
             pacientesPendientes.forEach(p => {
-                const { id, ...data } = p; // Quitar el ID viejo para que Firestore genere uno nuevo
+                const { id, ...data } = p;
                 const newPatientRef = doc(collection(db, 'guardias_activas', newGuardiaId, 'pacientes'));
                 batch.set(newPatientRef, data);
             });
             
-            // 5. Ejecutar todas las operaciones en lote
             await batch.commit();
 
-            // 6. Actualizar el estado local para reflejar la nueva guardia
             localStorage.setItem('currentGuardiaId', newGuardiaId);
-            localStorage.setItem('currentGuardiaStartDate', newStartDate);
+            localStorage.setItem('currentGuardiaStartDate', new Date().toISOString());
             
-            alert('Guardia finalizada y archivada. Se ha iniciado una nueva guardia con los pacientes pendientes.');
+            alert('Guardia finalizada y archivada. Nueva guardia iniciada.');
             location.reload();
-
-          } catch (error) {
-              console.error("Error al cambiar de guardia: ", error);
-              alert("Hubo un problema al cambiar de guardia. Inténtalo de nuevo.");
-          }
+          } catch (error) { console.error("Error al cambiar de guardia: ", error); }
       });
       
-      // Exportar la tabla y el resumen a PDF
       exportPdfBtn.addEventListener('click', () => {
         const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+        const doc = new jsPDF({ orientation: 'landscape' });
         
-        doc.setFontSize(18);
-        doc.text("Estadillo de Guardia - Cirugía General", 14, 22);
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Fecha de Guardia: ${new Date(localStorage.getItem('currentGuardiaStartDate')).toLocaleDateString('es-ES')}`, 14, 30);
+        doc.setFontSize(16);
+        doc.text("Estadillo de Guardia - Cirugía General", 14, 20);
+        doc.setFontSize(10);
+        doc.text(`Fecha de Guardia: ${new Date(localStorage.getItem('currentGuardiaStartDate')).toLocaleDateString('es-ES')}`, 14, 26);
 
-        // Usar autoTable para generar la tabla desde el HTML
         doc.autoTable({
             html: '#patient-table',
-            startY: 35,
+            startY: 30,
             theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] } // Color azul para la cabecera
+            headStyles: { fillColor: [41, 128, 185] }
         });
         
-        const finalY = doc.lastAutoTable.finalY; // Obtener la posición Y final de la tabla
+        const finalY = doc.lastAutoTable.finalY;
         doc.setFontSize(12);
         doc.text("Resumen:", 14, finalY + 15);
-        
-        // Crear una segunda tabla para el resumen
         doc.autoTable({
             startY: finalY + 18,
             body: [
-                ['Total Pacientes', document.getElementById('total-patients').textContent],
-                ['En Urgencias', document.getElementById('urgencias-patients').textContent],
-                ['En Planta', document.getElementById('planta-patients').textContent],
-                ['IQ Totales', document.getElementById('total-iq').textContent],
-                ['IQ Locales', document.getElementById('iq-local').textContent],
-                ['IQ Generales', document.getElementById('iq-general').textContent],
+                ['Total Pacientes', document.getElementById('total-patients').textContent, 'En Urgencias', document.getElementById('urgencias-patients').textContent, 'En Planta', document.getElementById('planta-patients').textContent],
+                ['IQ Totales', document.getElementById('total-iq').textContent, 'IQ Locales', document.getElementById('iq-local').textContent, 'IQ Generales', document.getElementById('iq-general').textContent],
             ],
-            theme: 'grid',
-            styles: { cellWidth: 'wrap' },
-            columnStyles: { 0: { cellWidth: 40 }, 1: { cellWidth: 20, halign: 'center' } }
-        })
+            theme: 'grid'
+        });
 
         doc.save(`estadillo_guardia_${new Date().toISOString().split('T')[0]}.pdf`);
       });
