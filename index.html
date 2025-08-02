@@ -49,6 +49,7 @@
         }
         .inline-select {
             min-width: 120px;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -149,9 +150,9 @@
                                 <th>Sitio</th>
                                 <th>Nombre y Apellidos</th>
                                 <th>Diagnóstico</th>
+                                <th>Tratamiento</th>
                                 <th>Comentario</th>
                                 <th>Estado</th>
-                                <th>Tratamiento</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -191,13 +192,23 @@
                     <form id="patient-form">
                         <input type="hidden" id="patient-id">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label for="nombre" class="form-label">Nombre y Apellidos</label>
                                 <input type="text" id="nombre" class="form-control" required>
                             </div>
-                            <div class="col-md-6 mb-3">
+                        </div>
+                        <div class="row">
+                             <div class="col-md-6 mb-3">
                                 <label for="diagnostico" class="form-label">Diagnóstico</label>
                                 <input type="text" id="diagnostico" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="tratamiento" class="form-label">Tratamiento</label>
+                                <select id="tratamiento" class="form-select" required>
+                                    <option value="Médico">Médico</option>
+                                    <option value="IQ Local">IQ Local</option>
+                                    <option value="IQ General">IQ General</option>
+                                </select>
                             </div>
                         </div>
                         <div class="row">
@@ -212,26 +223,12 @@
                                 <label for="sitio" class="form-label">Sitio (Cama/Box)</label>
                                 <input type="text" id="sitio" class="form-control" required>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="unidad" class="form-label">Unidad</label>
-                                <input type="text" id="unidad" class="form-control">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
+                             <div class="col-md-4 mb-3">
                                 <label for="estado" class="form-label">Estado</label>
                                 <select id="estado" class="form-select" required>
                                     <option value="Pendiente">Pendiente</option>
                                     <option value="Ingresado">Ingresado</option>
                                     <option value="Alta">Alta</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="tratamiento" class="form-label">Tratamiento</label>
-                                <select id="tratamiento" class="form-select" required>
-                                    <option value="Médico">Médico</option>
-                                    <option value="IQ Local">IQ Local</option>
-                                    <option value="IQ General">IQ General</option>
                                 </select>
                             </div>
                         </div>
@@ -255,31 +252,6 @@
     
     <!-- SDKs de Firebase -->
     <script type="module">
-      /*
-      * --- NOTA IMPORTANTE SOBRE PERMISOS DE FIREBASE ---
-      * Si la aplicación muestra un error de "Missing or insufficient permissions",
-      * significa que las reglas de seguridad de tu base de datos Firestore no están
-      * configuradas correctamente.
-      *
-      * Ve a tu consola de Firebase -> Firestore Database -> Reglas.
-      * Reemplaza el contenido con las siguientes reglas y haz clic en "Publicar":
-      *
-      * rules_version = '2';
-      * service cloud.firestore {
-      * match /databases/{database}/documents {
-      * // Permite a cualquier usuario autenticado leer y escribir en la subcolección de pacientes
-      * match /guardias_activas/{guardiaId}/pacientes/{pacienteId} {
-      * allow read, write: if request.auth != null;
-      * }
-      *
-      * // Permite a cualquier usuario autenticado leer y escribir en los archivos de guardias
-      * match /guardias_archivadas/{archivoId} {
-      * allow read, write: if request.auth != null;
-      * }
-      * }
-      * }
-      */
-
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
       import { 
         getAuth, 
@@ -446,7 +418,21 @@
             updateSummary();
         } catch(error) { 
             console.error("Error cargando pacientes: ", error); 
-            alert("Error de permisos al cargar los datos. Asegúrate de que las reglas de seguridad de Firestore están configuradas correctamente. Revisa el comentario en el código para ver las reglas necesarias.");
+            alert("Error de permisos al cargar los datos. Asegúrate de que las reglas de seguridad de Firestore están configuradas correctamente.");
+        }
+      }
+
+      function setSelectColor(selectElement) {
+        selectElement.classList.remove('bg-warning', 'text-dark', 'bg-primary', 'text-white', 'bg-success', 'bg-secondary');
+        const value = selectElement.value;
+        if (value === 'Pendiente') {
+            selectElement.classList.add('bg-warning', 'text-dark');
+        } else if (value === 'Ingresado') {
+            selectElement.classList.add('bg-primary', 'text-white');
+        } else if (value === 'Alta') {
+            selectElement.classList.add('bg-success', 'text-white');
+        } else {
+            selectElement.classList.add('bg-secondary', 'text-white');
         }
       }
 
@@ -457,7 +443,6 @@
         const createSelect = (options, selectedValue, field) => {
             const select = document.createElement('select');
             select.className = 'form-select form-select-sm inline-select';
-            select.setAttribute('data-field', field);
             options.forEach(opt => {
                 const option = document.createElement('option');
                 option.value = opt;
@@ -465,7 +450,17 @@
                 if (opt === selectedValue) option.selected = true;
                 select.appendChild(option);
             });
-            select.addEventListener('change', (e) => handleInlineUpdate(paciente.id, field, e.target.value));
+            
+            if (field === 'estado') {
+                setSelectColor(select);
+            }
+
+            select.addEventListener('change', (e) => {
+                handleInlineUpdate(paciente.id, field, e.target.value);
+                if (field === 'estado') {
+                    setSelectColor(e.target);
+                }
+            });
             return select.outerHTML;
         };
 
@@ -474,9 +469,9 @@
             <td>${paciente.sitio}</td>
             <td>${paciente.nombre}</td>
             <td>${paciente.diagnostico}</td>
+            <td>${createSelect(['Médico', 'IQ Local', 'IQ General'], paciente.tratamiento, 'tratamiento')}</td>
             <td>${paciente.comentario || ''}</td>
             <td>${createSelect(['Pendiente', 'Ingresado', 'Alta'], paciente.estado, 'estado')}</td>
-            <td>${createSelect(['Médico', 'IQ Local', 'IQ General'], paciente.tratamiento, 'tratamiento')}</td>
             <td class="table-actions">
                 <button class="btn btn-sm btn-outline-primary edit-btn"><i class="bi bi-pencil"></i></button>
                 <button class="btn btn-sm btn-outline-danger delete-btn"><i class="bi bi-trash"></i></button>
@@ -492,12 +487,11 @@
         const patientRef = doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', id);
         try {
             await updateDoc(patientRef, { [field]: value });
-            // Actualizar caché local
             const patientIndex = pacientesCache.findIndex(p => p.id === id);
             if (patientIndex > -1) {
                 pacientesCache[patientIndex][field] = value;
+                updateSummary();
             }
-            updateSummary(); // Recalcular resumen si es necesario
         } catch (error) {
             console.error("Error en actualización rápida: ", error);
             alert('No se pudo guardar el cambio.');
@@ -507,6 +501,7 @@
       addPatientBtn.addEventListener('click', () => {
           patientForm.reset();
           document.getElementById('patient-id').value = '';
+          document.getElementById('unidad').value = ''; // Campo opcional que no estaba en el modal
           patientModalLabel.textContent = 'Añadir Paciente';
           patientModal.show();
       });
@@ -517,12 +512,12 @@
             document.getElementById('patient-id').value = paciente.id;
             document.getElementById('nombre').value = paciente.nombre;
             document.getElementById('diagnostico').value = paciente.diagnostico;
+            document.getElementById('tratamiento').value = paciente.tratamiento;
             document.getElementById('localizacion').value = paciente.localizacion;
             document.getElementById('sitio').value = paciente.sitio;
-            document.getElementById('unidad').value = paciente.unidad;
             document.getElementById('estado').value = paciente.estado;
-            document.getElementById('tratamiento').value = paciente.tratamiento;
             document.getElementById('comentario').value = paciente.comentario;
+            // No hay campo 'unidad' en el modal, se puede añadir si es necesario
             
             patientModalLabel.textContent = 'Editar Paciente';
             patientModal.show();
@@ -536,11 +531,11 @@
             localizacion: document.getElementById('localizacion').value,
             sitio: document.getElementById('sitio').value,
             nombre: document.getElementById('nombre').value,
-            unidad: document.getElementById('unidad').value,
             diagnostico: document.getElementById('diagnostico').value,
             tratamiento: document.getElementById('tratamiento').value,
             comentario: document.getElementById('comentario').value,
             estado: document.getElementById('estado').value,
+            // unidad: document.getElementById('unidad').value, // Descomentar si se añade al modal
         };
 
         try {
