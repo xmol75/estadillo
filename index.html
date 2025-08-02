@@ -259,32 +259,6 @@
     
     <!-- SDKs de Firebase -->
     <script type="module">
-      /*
-      * --- REGLAS DE SEGURIDAD DE FIREBASE (¡MUY IMPORTANTE!) ---
-      * Para que la aplicación colaborativa funcione, necesitas actualizar tus reglas de seguridad.
-      * Ve a tu consola de Firebase -> Firestore Database -> Reglas.
-      * Reemplaza el contenido con las siguientes reglas y haz clic en "Publicar":
-      *
-      * rules_version = '2';
-      * service cloud.firestore {
-      * match /databases/{database}/documents {
-      * // Permite a cualquier usuario autenticado gestionar el estado de la app (guardia activa)
-      * match /app_state/current_guard {
-      * allow read, write: if request.auth != null;
-      * }
-      *
-      * // Permite a cualquier usuario autenticado leer y escribir en la subcolección de pacientes
-      * match /guardias_activas/{guardiaId}/pacientes/{pacienteId} {
-      * allow read, write: if request.auth != null;
-      * }
-      *
-      * // Permite a cualquier usuario autenticado leer y escribir en los archivos de guardias
-      * match /guardias_archivadas/{archivoId} {
-      * allow read, write: if request.auth != null;
-      * }
-      * }
-      * }
-      */
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
       import { 
         getAuth, 
@@ -659,34 +633,53 @@
       });
       
       exportPdfBtn.addEventListener('click', () => {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ orientation: 'landscape' });
-        
-        doc.setFontSize(16);
-        doc.text("Estadillo de Guardia - Cirugía General", 14, 20);
-        doc.setFontSize(10);
-        doc.text(`Fecha de Guardia: ${guardiaDateEl.textContent}`, 14, 26);
+          try {
+            // Comprueba si la librería jsPDF está cargada
+            if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
+                alert("Error: La librería para generar PDF (jsPDF) no se ha cargado correctamente.");
+                console.error("jsPDF library is not loaded.");
+                return;
+            }
+            // Comprueba si el plugin autoTable está cargado
+            if (typeof window.jspdf.autoTable === 'undefined') {
+                alert("Error: El plugin para tablas PDF (autoTable) no se ha cargado correctamente.");
+                console.error("jsPDF-autoTable plugin is not loaded.");
+                return;
+            }
 
-        doc.autoTable({
-            html: '#patient-table',
-            startY: 30,
-            theme: 'striped',
-            headStyles: { fillColor: [41, 128, 185] }
-        });
-        
-        const finalY = doc.lastAutoTable.finalY;
-        doc.setFontSize(12);
-        doc.text("Resumen:", 14, finalY + 15);
-        doc.autoTable({
-            startY: finalY + 18,
-            body: [
-                ['Total Pacientes', document.getElementById('total-patients').textContent, 'En Urgencias', document.getElementById('urgencias-patients').textContent, 'En Planta', document.getElementById('planta-patients').textContent],
-                ['IQ Totales', document.getElementById('total-iq').textContent, 'IQ Locales', document.getElementById('iq-local').textContent, 'IQ Generales', document.getElementById('iq-general').textContent],
-            ],
-            theme: 'grid'
-        });
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape' });
+            
+            doc.setFontSize(16);
+            doc.text("Estadillo de Guardia - Cirugía General", 14, 20);
+            doc.setFontSize(10);
+            const fechaGuardia = guardiaDateEl.textContent || `Fecha no disponible`;
+            doc.text(fechaGuardia, 14, 26);
 
-        doc.save(`estadillo_guardia_${new Date().toISOString().split('T')[0]}.pdf`);
+            doc.autoTable({
+                html: '#patient-table',
+                startY: 30,
+                theme: 'striped',
+                headStyles: { fillColor: [41, 128, 185] }
+            });
+            
+            const finalY = doc.lastAutoTable.finalY;
+            doc.setFontSize(12);
+            doc.text("Resumen:", 14, finalY + 15);
+            doc.autoTable({
+                startY: finalY + 18,
+                body: [
+                    ['Total Pacientes', document.getElementById('total-patients').textContent, 'En Urgencias', document.getElementById('urgencias-patients').textContent, 'En Planta', document.getElementById('planta-patients').textContent],
+                    ['IQ Totales', document.getElementById('total-iq').textContent, 'IQ Locales', document.getElementById('iq-local').textContent, 'IQ Generales', document.getElementById('iq-general').textContent],
+                ],
+                theme: 'grid'
+            });
+
+            doc.save(`estadillo_guardia_${new Date().toISOString().split('T')[0]}.pdf`);
+          } catch (error) {
+              console.error("Error al generar el PDF:", error);
+              alert("Ocurrió un error inesperado al intentar generar el PDF. Por favor, revisa la consola para más detalles.");
+          }
       });
 
     </script>
