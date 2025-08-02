@@ -294,6 +294,8 @@
       // --- REFERENCIAS A ELEMENTOS DEL DOM ---
       const authContainer = document.getElementById('auth-container');
       const appContainer = document.getElementById('app-container');
+      const loginView = document.getElementById('login-view');
+      const registerView = document.getElementById('register-view');
       const loginForm = document.getElementById('login-form');
       const registerForm = document.getElementById('register-form');
       const logoutBtn = document.getElementById('logout-btn');
@@ -320,7 +322,7 @@
           } else if (user && !user.emailVerified) {
               authContainer.style.display = 'block';
               appContainer.style.display = 'none';
-              document.getElementById('login-view').innerHTML = `
+              loginView.innerHTML = `
                   <div class="alert alert-warning">
                       Se ha enviado un correo de verificación a <strong>${user.email}</strong>. Por favor, revísalo.
                   </div>
@@ -347,15 +349,22 @@
 
       loginForm.addEventListener('submit', (e) => {
           e.preventDefault();
-          signInWithEmailAndPassword(auth, loginForm.email.value, loginForm.password.value)
-              .catch(err => document.getElementById('login-error').textContent = 'Email o contraseña incorrectos.');
+          const email = document.getElementById('login-email').value;
+          const password = document.getElementById('login-password').value;
+          signInWithEmailAndPassword(auth, email, password)
+              .catch(err => {
+                console.error("Login Error:", err);
+                document.getElementById('login-error').textContent = 'Email o contraseña incorrectos.';
+              });
       });
       
       registerForm.addEventListener('submit', (e) => {
           e.preventDefault();
-          const email = registerForm.email.value;
-          const password = registerForm.password.value;
+          const email = document.getElementById('register-email').value;
+          const password = document.getElementById('register-password').value;
           const errorDiv = document.getElementById('register-error');
+          errorDiv.textContent = ''; // Limpiar errores previos
+
           if (!email.endsWith('@ssib.es')) {
               errorDiv.textContent = 'El email debe ser del dominio @ssib.es.';
               return;
@@ -369,7 +378,10 @@
                   alert("¡Registro exitoso! Revisa tu email para verificar la cuenta.");
                   signOut(auth);
               }))
-              .catch(err => errorDiv.textContent = err.code === 'auth/email-already-in-use' ? 'Email ya registrado.' : 'Error en el registro.');
+              .catch(err => {
+                console.error("Register Error:", err);
+                errorDiv.textContent = err.code === 'auth/email-already-in-use' ? 'Email ya registrado.' : 'Error en el registro.';
+              });
       });
 
       logoutBtn.addEventListener('click', () => signOut(auth).then(() => location.reload()));
