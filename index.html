@@ -51,6 +51,10 @@
             min-width: 120px;
             font-weight: 500;
         }
+        /* Estilo para resaltar las filas de pacientes pendientes */
+        .patient-pending {
+            background-color: #fff3cd !important;
+        }
     </style>
 </head>
 <body>
@@ -167,8 +171,11 @@
 
             <!-- Resumen y Estadísticas de la guardia -->
             <section class="summary-card p-4 rounded">
-                <h3>Resumen de la Guardia</h3>
-                <div id="summary" class="row">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3>Resumen de la Guardia</h3>
+                    <button id="refresh-summary-btn" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-clockwise"></i> Actualizar</button>
+                </div>
+                <div id="summary" class="row mt-3">
                     <div class="col-md-3"><strong>Total Pacientes:</strong> <span id="total-patients">0</span></div>
                     <div class="col-md-3"><strong>En Urgencias:</strong> <span id="urgencias-patients">0</span></div>
                     <div class="col-md-3"><strong>En Planta:</strong> <span id="planta-patients">0</span></div>
@@ -303,6 +310,7 @@
       const changeGuardBtn = document.getElementById('change-guard-btn');
       const exportPdfBtn = document.getElementById('export-pdf-btn');
       const addPatientBtn = document.getElementById('add-patient-btn');
+      const refreshSummaryBtn = document.getElementById('refresh-summary-btn');
       
       const patientModalEl = document.getElementById('patient-modal');
       const patientModal = new bootstrap.Modal(patientModalEl);
@@ -439,6 +447,9 @@
       function renderPatient(paciente) {
         const row = document.createElement('tr');
         row.setAttribute('data-id', paciente.id);
+        if (paciente.estado === 'Pendiente') {
+            row.classList.add('patient-pending');
+        }
         
         const createSelect = (options, selectedValue, field) => {
             const select = document.createElement('select');
@@ -459,6 +470,13 @@
                 handleInlineUpdate(paciente.id, field, e.target.value);
                 if (field === 'estado') {
                     setSelectColor(e.target);
+                    // Actualizar la clase de la fila
+                    const tableRow = e.target.closest('tr');
+                    if (e.target.value === 'Pendiente') {
+                        tableRow.classList.add('patient-pending');
+                    } else {
+                        tableRow.classList.remove('patient-pending');
+                    }
                 }
             });
             return select.outerHTML;
@@ -501,7 +519,6 @@
       addPatientBtn.addEventListener('click', () => {
           patientForm.reset();
           document.getElementById('patient-id').value = '';
-          document.getElementById('unidad').value = ''; // Campo opcional que no estaba en el modal
           patientModalLabel.textContent = 'Añadir Paciente';
           patientModal.show();
       });
@@ -509,6 +526,7 @@
       function handleEdit(id) {
         const paciente = pacientesCache.find(p => p.id === id);
         if (paciente) {
+            patientForm.reset(); // Limpia el formulario antes de llenarlo
             document.getElementById('patient-id').value = paciente.id;
             document.getElementById('nombre').value = paciente.nombre;
             document.getElementById('diagnostico').value = paciente.diagnostico;
@@ -516,8 +534,7 @@
             document.getElementById('localizacion').value = paciente.localizacion;
             document.getElementById('sitio').value = paciente.sitio;
             document.getElementById('estado').value = paciente.estado;
-            document.getElementById('comentario').value = paciente.comentario;
-            // No hay campo 'unidad' en el modal, se puede añadir si es necesario
+            document.getElementById('comentario').value = paciente.comentario || '';
             
             patientModalLabel.textContent = 'Editar Paciente';
             patientModal.show();
@@ -535,7 +552,6 @@
             tratamiento: document.getElementById('tratamiento').value,
             comentario: document.getElementById('comentario').value,
             estado: document.getElementById('estado').value,
-            // unidad: document.getElementById('unidad').value, // Descomentar si se añade al modal
         };
 
         try {
@@ -562,6 +578,7 @@
       }
 
       function updateSummary() {
+        if (!pacientesCache) return;
         const total = pacientesCache.length;
         const urgencias = pacientesCache.filter(p => p.localizacion === 'Urgencias').length;
         const iqLocal = pacientesCache.filter(p => p.tratamiento === 'IQ Local').length;
@@ -573,6 +590,8 @@
         document.getElementById('iq-local').textContent = iqLocal;
         document.getElementById('iq-general').textContent = iqGeneral;
       }
+      
+      refreshSummaryBtn.addEventListener('click', updateSummary);
 
       changeGuardBtn.addEventListener('click', async () => {
           if (!confirm('¿Finalizar la guardia actual? Se archivarán los datos y los pacientes pendientes pasarán a la siguiente.')) return;
