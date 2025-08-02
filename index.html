@@ -22,11 +22,12 @@
         }
         .password-toggle {
             position: absolute;
-            right: 12px;
-            top: 40px; /* Ajuste para centrar verticalmente */
+            right: 15px;
+            top: 68%; /* Posicionamiento porcentual para mejor alineación */
             transform: translateY(-50%);
             cursor: pointer;
             color: #6c757d;
+            font-size: 1.25rem; /* Icono más grande */
         }
         .form-section, .table-section {
             background-color: white;
@@ -254,6 +255,31 @@
     
     <!-- SDKs de Firebase -->
     <script type="module">
+      /*
+      * --- NOTA IMPORTANTE SOBRE PERMISOS DE FIREBASE ---
+      * Si la aplicación muestra un error de "Missing or insufficient permissions",
+      * significa que las reglas de seguridad de tu base de datos Firestore no están
+      * configuradas correctamente.
+      *
+      * Ve a tu consola de Firebase -> Firestore Database -> Reglas.
+      * Reemplaza el contenido con las siguientes reglas y haz clic en "Publicar":
+      *
+      * rules_version = '2';
+      * service cloud.firestore {
+      * match /databases/{database}/documents {
+      * // Permite a cualquier usuario autenticado leer y escribir en la subcolección de pacientes
+      * match /guardias_activas/{guardiaId}/pacientes/{pacienteId} {
+      * allow read, write: if request.auth != null;
+      * }
+      *
+      * // Permite a cualquier usuario autenticado leer y escribir en los archivos de guardias
+      * match /guardias_archivadas/{archivoId} {
+      * allow read, write: if request.auth != null;
+      * }
+      * }
+      * }
+      */
+
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
       import { 
         getAuth, 
@@ -384,9 +410,13 @@
               });
       });
 
-      logoutBtn.addEventListener('click', () => signOut(auth).then(() => location.reload()));
-      document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-view').style.display = 'none'; document.getElementById('register-view').style.display = 'block'; });
-      document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('register-view').style.display = 'none'; document.getElementById('login-view').style.display = 'block'; });
+      logoutBtn.addEventListener('click', () => signOut(auth).then(() => {
+          localStorage.removeItem('currentGuardiaId');
+          localStorage.removeItem('currentGuardiaStartDate');
+          location.reload();
+      }));
+      document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); loginView.style.display = 'none'; registerView.style.display = 'block'; });
+      document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); registerView.style.display = 'none'; loginView.style.display = 'block'; });
       
       // --- LÓGICA DE LA APLICACIÓN ---
       
@@ -414,7 +444,10 @@
             patientTableBody.innerHTML = '';
             pacientesCache.forEach(renderPatient);
             updateSummary();
-        } catch(error) { console.error("Error cargando pacientes: ", error); }
+        } catch(error) { 
+            console.error("Error cargando pacientes: ", error); 
+            alert("Error de permisos al cargar los datos. Asegúrate de que las reglas de seguridad de Firestore están configuradas correctamente. Revisa el comentario en el código para ver las reglas necesarias.");
+        }
       }
 
       function renderPatient(paciente) {
@@ -518,7 +551,10 @@
             }
             patientModal.hide();
             loadPatients();
-        } catch (error) { console.error("Error guardando paciente: ", error); }
+        } catch (error) { 
+            console.error("Error guardando paciente: ", error);
+            alert("Error al guardar el paciente. Revise la consola para más detalles.");
+        }
       });
 
       async function handleDelete(id) {
