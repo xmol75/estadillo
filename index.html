@@ -22,10 +22,11 @@
         }
         .password-toggle {
             position: absolute;
-            right: 10px;
-            top: 50%;
+            right: 12px;
+            top: 40px; /* Ajuste para centrar verticalmente */
             transform: translateY(-50%);
             cursor: pointer;
+            color: #6c757d;
         }
         .form-section {
             background-color: white;
@@ -36,6 +37,11 @@
         }
         .summary-card {
             background-color: #e9ecef;
+        }
+        #password-rules ul {
+            padding-left: 20px;
+            font-size: 0.875rem;
+            color: #6c757d;
         }
     </style>
 </head>
@@ -78,7 +84,7 @@
                             <h3 class="mb-4">Registro</h3>
                             <form id="register-form">
                                 <div class="mb-3">
-                                    <label for="register-email" class="form-label">Email Corporativo (@ssib)</label>
+                                    <label for="register-email" class="form-label">Email Corporativo (@ssib.es)</label>
                                     <input type="email" class="form-control" id="register-email" required>
                                 </div>
                                 <div class="mb-3 password-container">
@@ -87,7 +93,12 @@
                                      <i class="bi bi-eye-slash password-toggle" id="toggle-register-password"></i>
                                 </div>
                                 <div id="password-rules" class="form-text mb-3">
-                                    La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un símbolo especial.
+                                   <ul>
+                                       <li>Al menos 8 caracteres</li>
+                                       <li>Una mayúscula (ej: A, B, C)</li>
+                                       <li>Un número (ej: 1, 2, 3)</li>
+                                       <li>Un símbolo especial (ej: @, $, !)</li>
+                                   </ul>
                                 </div>
                                 <button type="submit" class="btn btn-success w-100">Registrarse</button>
                                 <div id="register-error" class="text-danger mt-2"></div>
@@ -102,8 +113,7 @@
         <!-- APLICACIÓN PRINCIPAL (Visible tras login) -->
         <div id="app-container">
             <header class="text-center py-3">
-                <h1 class="display-6">Estadillo de guardia del Servicio de Cirugía General y del Aparato Digestivo</h1>
-                <h2>Hospital Universitari Son Espases</h2>
+                <h1 class="h4">Estadillo de guardia del Servicio de Cirugía General y del Aparato Digestivo</h1>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <h4 id="guardia-date" class="mb-0"></h4>
                     <div>
@@ -352,8 +362,8 @@
           const errorDiv = document.getElementById('register-error');
 
           // Validación de dominio y contraseña
-          if (!email.endsWith('@ssib')) {
-              errorDiv.textContent = 'El email debe pertenecer al dominio corporativo @ssib.';
+          if (!email.endsWith('@ssib.es')) {
+              errorDiv.textContent = 'El email debe pertenecer al dominio corporativo @ssib.es.';
               return;
           }
           const passwordRules = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
