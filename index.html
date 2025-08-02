@@ -259,6 +259,32 @@
     
     <!-- SDKs de Firebase -->
     <script type="module">
+      /*
+      * --- REGLAS DE SEGURIDAD DE FIREBASE (¡MUY IMPORTANTE!) ---
+      * Para que la aplicación colaborativa funcione, necesitas actualizar tus reglas de seguridad.
+      * Ve a tu consola de Firebase -> Firestore Database -> Reglas.
+      * Reemplaza el contenido con las siguientes reglas y haz clic en "Publicar":
+      *
+      * rules_version = '2';
+      * service cloud.firestore {
+      * match /databases/{database}/documents {
+      * // Permite a cualquier usuario autenticado gestionar el estado de la app (guardia activa)
+      * match /app_state/current_guard {
+      * allow read, write: if request.auth != null;
+      * }
+      *
+      * // Permite a cualquier usuario autenticado leer y escribir en la subcolección de pacientes
+      * match /guardias_activas/{guardiaId}/pacientes/{pacienteId} {
+      * allow read, write: if request.auth != null;
+      * }
+      *
+      * // Permite a cualquier usuario autenticado leer y escribir en los archivos de guardias
+      * match /guardias_archivadas/{archivoId} {
+      * allow read, write: if request.auth != null;
+      * }
+      * }
+      * }
+      */
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
       import { 
         getAuth, 
@@ -274,6 +300,8 @@
         addDoc, 
         getDocs,
         doc,
+        getDoc,
+        setDoc,
         updateDoc,
         deleteDoc,
         writeBatch,
@@ -390,29 +418,35 @@
               });
       });
 
-      logoutBtn.addEventListener('click', () => signOut(auth).then(() => {
-          localStorage.removeItem('currentGuardiaId');
-          localStorage.removeItem('currentGuardiaStartDate');
-          location.reload();
-      }));
+      logoutBtn.addEventListener('click', () => signOut(auth).then(() => location.reload()));
       document.getElementById('show-register').addEventListener('click', (e) => { e.preventDefault(); loginView.style.display = 'none'; registerView.style.display = 'block'; });
       document.getElementById('show-login').addEventListener('click', (e) => { e.preventDefault(); registerView.style.display = 'none'; loginView.style.display = 'block'; });
       
       // --- LÓGICA DE LA APLICACIÓN ---
       
       async function loadGuardiaData() {
-          currentGuardiaId = localStorage.getItem('currentGuardiaId');
-          let guardiaStartDate = localStorage.getItem('currentGuardiaStartDate');
-          if (!currentGuardiaId) {
-              const newGuardiaRef = doc(collection(db, 'guardias_activas'));
-              currentGuardiaId = newGuardiaRef.id;
-              guardiaStartDate = new Date().toISOString();
-              localStorage.setItem('currentGuardiaId', currentGuardiaId);
-              localStorage.setItem('currentGuardiaStartDate', guardiaStartDate);
+          const stateRef = doc(db, 'app_state', 'current_guard');
+          try {
+              const stateSnap = await getDoc(stateRef);
+              let guardiaStartDate;
+              if (stateSnap.exists()) {
+                  const stateData = stateSnap.data();
+                  currentGuardiaId = stateData.activeGuardiaId;
+                  guardiaStartDate = stateData.startDate;
+              } else {
+                  // Si no hay estado, es la primera vez que se ejecuta la app
+                  const newGuardiaRef = doc(collection(db, 'guardias_activas'));
+                  currentGuardiaId = newGuardiaRef.id;
+                  guardiaStartDate = new Date().toISOString();
+                  await setDoc(stateRef, { activeGuardiaId: currentGuardiaId, startDate: guardiaStartDate });
+              }
+              const date = new Date(guardiaStartDate);
+              guardiaDateEl.textContent = `Guardia del: ${date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+              loadPatients();
+          } catch (error) {
+              console.error("Error crítico cargando estado de la guardia:", error);
+              alert("No se pudo cargar la información de la guardia. Revisa las reglas de seguridad y la conexión.");
           }
-          const date = new Date(guardiaStartDate);
-          guardiaDateEl.textContent = `Guardia del: ${date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
-          loadPatients();
       }
 
       async function loadPatients() {
@@ -470,7 +504,6 @@
                 handleInlineUpdate(paciente.id, field, e.target.value);
                 if (field === 'estado') {
                     setSelectColor(e.target);
-                    // Actualizar la clase de la fila
                     const tableRow = e.target.closest('tr');
                     if (e.target.value === 'Pendiente') {
                         tableRow.classList.add('patient-pending');
@@ -526,7 +559,7 @@
       function handleEdit(id) {
         const paciente = pacientesCache.find(p => p.id === id);
         if (paciente) {
-            patientForm.reset(); // Limpia el formulario antes de llenarlo
+            patientForm.reset();
             document.getElementById('patient-id').value = paciente.id;
             document.getElementById('nombre').value = paciente.nombre;
             document.getElementById('diagnostico').value = paciente.diagnostico;
@@ -596,10 +629,12 @@
       changeGuardBtn.addEventListener('click', async () => {
           if (!confirm('¿Finalizar la guardia actual? Se archivarán los datos y los pacientes pendientes pasarán a la siguiente.')) return;
           try {
+            const stateRef = doc(db, 'app_state', 'current_guard');
             const fechaArchivo = new Date().toISOString().split('T')[0];
             const archivoRef = doc(db, 'guardias_archivadas', `${fechaArchivo}_${currentGuardiaId}`);
+            
             const batch = writeBatch(db);
-            batch.set(archivoRef, { fecha: new Date(localStorage.getItem('currentGuardiaStartDate')), pacientes: pacientesCache });
+            batch.set(archivoRef, { fecha: new Date().toISOString(), pacientes: pacientesCache });
             
             pacientesCache.forEach(p => batch.delete(doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', p.id)));
 
@@ -615,8 +650,8 @@
             
             await batch.commit();
 
-            localStorage.setItem('currentGuardiaId', newGuardiaId);
-            localStorage.setItem('currentGuardiaStartDate', new Date().toISOString());
+            // Actualizar el estado central con la nueva guardia
+            await setDoc(stateRef, { activeGuardiaId: newGuardiaId, startDate: new Date().toISOString() });
             
             alert('Guardia finalizada y archivada. Nueva guardia iniciada.');
             location.reload();
@@ -630,7 +665,7 @@
         doc.setFontSize(16);
         doc.text("Estadillo de Guardia - Cirugía General", 14, 20);
         doc.setFontSize(10);
-        doc.text(`Fecha de Guardia: ${new Date(localStorage.getItem('currentGuardiaStartDate')).toLocaleDateString('es-ES')}`, 14, 26);
+        doc.text(`Fecha de Guardia: ${guardiaDateEl.textContent}`, 14, 26);
 
         doc.autoTable({
             html: '#patient-table',
