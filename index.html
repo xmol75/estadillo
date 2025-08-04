@@ -11,7 +11,7 @@
 
     <!-- Librerías externas para generar PDF (cargadas aquí para asegurar disponibilidad) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.autotable.min.js"></script>
 
     <style>
         /* Estilos generales y para la interfaz */
@@ -638,12 +638,6 @@
       
       exportPdfBtn.addEventListener('click', () => {
           try {
-            if (typeof window.jspdf === 'undefined' || typeof window.jspdf.autoTable === 'undefined') {
-                alert("Error: Las librerías para generar el PDF no se han cargado correctamente. Por favor, recarga la página e inténtalo de nuevo.");
-                console.error("jsPDF or jsPDF-autoTable library is not loaded.");
-                return;
-            }
-
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ orientation: 'landscape' });
             
