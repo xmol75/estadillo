@@ -638,16 +638,9 @@
       
       exportPdfBtn.addEventListener('click', () => {
           try {
-            // Comprueba si la librería jsPDF está cargada
-            if (typeof window.jspdf === 'undefined' || typeof window.jspdf.jsPDF === 'undefined') {
-                alert("Error: La librería para generar PDF (jsPDF) no se ha cargado correctamente.");
-                console.error("jsPDF library is not loaded.");
-                return;
-            }
-            // Comprueba si el plugin autoTable está cargado
-            if (typeof window.jspdf.autoTable === 'undefined') {
-                alert("Error: El plugin para tablas PDF (autoTable) no se ha cargado correctamente.");
-                console.error("jsPDF-autoTable plugin is not loaded.");
+            if (typeof window.jspdf === 'undefined' || typeof window.jspdf.autoTable === 'undefined') {
+                alert("Error: Las librerías para generar el PDF no se han cargado correctamente. Por favor, recarga la página e inténtalo de nuevo.");
+                console.error("jsPDF or jsPDF-autoTable library is not loaded.");
                 return;
             }
 
@@ -660,8 +653,20 @@
             const fechaGuardia = guardiaDateEl.textContent || `Fecha no disponible`;
             doc.text(fechaGuardia, 14, 26);
 
+            const head = [['Localización', 'Sitio', 'Nombre y Apellidos', 'Diagnóstico', 'Tratamiento', 'Comentario', 'Estado']];
+            const body = pacientesCache.map(p => [
+                p.localizacion || '',
+                p.sitio || '',
+                p.nombre || '',
+                p.diagnostico || '',
+                p.tratamiento || '',
+                p.comentario || '',
+                p.estado || ''
+            ]);
+
             doc.autoTable({
-                html: '#patient-table',
+                head: head,
+                body: body,
                 startY: 30,
                 theme: 'striped',
                 headStyles: { fillColor: [41, 128, 185] }
