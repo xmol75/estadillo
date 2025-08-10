@@ -23,7 +23,7 @@
         .password-toggle {
             position: absolute;
             right: 15px;
-            top: 68%; /* Posicionamiento porcentual para mejor alineación */
+            top: 50%; /* centrado vertical consistente */
             transform: translateY(-50%);
             cursor: pointer;
             color: #6c757d;
@@ -73,14 +73,14 @@
                     <div id="login-view">
                         <div class="form-section">
                             <h3 class="mb-4">Iniciar Sesión</h3>
-                            <form id="login-form">
+                            <form id="login-form" novalidate>
                                 <div class="mb-3">
                                     <label for="login-email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="login-email">
+                                    <input type="email" class="form-control" id="login-email" required>
                                 </div>
                                 <div class="mb-3 password-container">
                                     <label for="login-password" class="form-label">Contraseña</label>
-                                    <input type="password" class="form-control" id="login-password">
+                                    <input type="password" class="form-control" id="login-password" required>
                                     <i class="bi bi-eye-slash password-toggle" id="toggle-login-password"></i>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">Entrar</button>
@@ -94,14 +94,14 @@
                     <div id="register-view" style="display: none;">
                         <div class="form-section">
                             <h3 class="mb-4">Registro</h3>
-                            <form id="register-form">
+                            <form id="register-form" novalidate>
                                 <div class="mb-3">
                                     <label for="register-email" class="form-label">Email Corporativo (@ssib.es)</label>
-                                    <input type="email" class="form-control" id="register-email">
+                                    <input type="email" class="form-control" id="register-email" required>
                                 </div>
                                 <div class="mb-3 password-container">
                                     <label for="register-password" class="form-label">Contraseña</label>
-                                    <input type="password" class="form-control" id="register-password">
+                                    <input type="password" class="form-control" id="register-password" required>
                                      <i class="bi bi-eye-slash password-toggle" id="toggle-register-password"></i>
                                 </div>
                                 <div id="password-rules" class="form-text mb-3">
@@ -192,22 +192,22 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="patient-form">
+                    <form id="patient-form" novalidate>
                         <input type="hidden" id="patient-id">
                         <div class="row">
                             <div class="col-md-12 mb-3">
                                 <label for="nombre" class="form-label">Nombre y Apellidos</label>
-                                <input type="text" id="nombre" class="form-control">
+                                <input type="text" id="nombre" class="form-control" required>
                             </div>
                         </div>
                         <div class="row">
                              <div class="col-md-6 mb-3">
                                 <label for="diagnostico" class="form-label">Diagnóstico</label>
-                                <input type="text" id="diagnostico" class="form-control">
+                                <input type="text" id="diagnostico" class="form-control" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="tratamiento" class="form-label">Tratamiento</label>
-                                <select id="tratamiento" class="form-select">
+                                <select id="tratamiento" class="form-select" required>
                                     <option value="Médico">Médico</option>
                                     <option value="IQ Local">IQ Local</option>
                                     <option value="IQ General">IQ General</option>
@@ -217,18 +217,18 @@
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label for="localizacion" class="form-label">Localización</label>
-                                <select id="localizacion" class="form-select">
+                                <select id="localizacion" class="form-select" required>
                                     <option value="Urgencias">Urgencias</option>
                                     <option value="Planta">Planta</option>
                                 </select>
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="sitio" class="form-label">Sitio (Cama/Box)</label>
-                                <input type="text" id="sitio" class="form-control">
+                                <input type="text" id="sitio" class="form-control" required>
                             </div>
                              <div class="col-md-4 mb-3">
                                 <label for="estado" class="form-label">Estado</label>
-                                <select id="estado" class="form-select">
+                                <select id="estado" class="form-select" required>
                                     <option value="Pendiente">Pendiente</option>
                                     <option value="Ingresado">Ingresado</option>
                                     <option value="Alta">Alta</option>
@@ -276,7 +276,8 @@
         deleteDoc,
         writeBatch,
         query,
-        orderBy
+        orderBy,
+        serverTimestamp
       } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
       // Configuración de Firebase.
@@ -351,7 +352,7 @@
 
       loginForm.addEventListener('submit', (e) => {
           e.preventDefault();
-          const email = document.getElementById('login-email').value;
+          const email = document.getElementById('login-email').value.trim();
           const password = document.getElementById('login-password').value;
           signInWithEmailAndPassword(auth, email, password)
               .catch(err => {
@@ -362,7 +363,7 @@
       
       registerForm.addEventListener('submit', (e) => {
           e.preventDefault();
-          const email = document.getElementById('register-email').value;
+          const email = document.getElementById('register-email').value.trim();
           const password = document.getElementById('register-password').value;
           const errorDiv = document.getElementById('register-error');
           errorDiv.textContent = ''; // Limpiar errores previos
@@ -371,7 +372,7 @@
               errorDiv.textContent = 'El email debe ser del dominio @ssib.es.';
               return;
           }
-          if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(password)) {
+          if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$/.test(password)) {
               errorDiv.textContent = 'La contraseña no cumple los requisitos.';
               return;
           }
@@ -422,7 +423,7 @@
         const q = query(collection(db, 'guardias_activas', currentGuardiaId, 'pacientes'), orderBy("nombre"));
         try {
             const snapshot = await getDocs(q);
-            pacientesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            pacientesCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             patientTableBody.innerHTML = '';
             pacientesCache.forEach(renderPatient);
             updateSummary();
@@ -448,64 +449,93 @@
 
       function renderPatient(paciente) {
         const row = document.createElement('tr');
-        row.setAttribute('data-id', paciente.id);
+        row.dataset.id = paciente.id || '';
+
+        // Resaltado si está pendiente
         if (paciente.estado === 'Pendiente') {
             row.classList.add('patient-pending');
         }
-        
-        const createSelect = (options, selectedValue, field) => {
-            const select = document.createElement('select');
-            select.className = 'form-select form-select-sm inline-select';
-            options.forEach(opt => {
-                const option = document.createElement('option');
-                option.value = opt;
-                option.textContent = opt;
-                if (opt === selectedValue) option.selected = true;
-                select.appendChild(option);
-            });
-            
-            if (field === 'estado') {
-                setSelectColor(select);
-            }
 
-            select.addEventListener('change', (e) => {
-                handleInlineUpdate(paciente.id, field, e.target.value);
-                if (field === 'estado') {
-                    setSelectColor(e.target);
-                    const tableRow = e.target.closest('tr');
-                    if (e.target.value === 'Pendiente') {
-                        tableRow.classList.add('patient-pending');
-                    } else {
-                        tableRow.classList.remove('patient-pending');
-                    }
-                }
-            });
-            return select.outerHTML;
+        // Helper para crear TD con textContent seguro
+        const tdText = (text) => {
+            const td = document.createElement('td');
+            td.textContent = text ?? '';
+            return td;
         };
 
-        row.innerHTML = `
-            <td>${paciente.localizacion}</td>
-            <td>${paciente.sitio}</td>
-            <td>${paciente.nombre}</td>
-            <td>${paciente.diagnostico}</td>
-            <td>${createSelect(['Médico', 'IQ Local', 'IQ General'], paciente.tratamiento, 'tratamiento')}</td>
-            <td>${paciente.comentario || ''}</td>
-            <td>${createSelect(['Pendiente', 'Ingresado', 'Alta'], paciente.estado, 'estado')}</td>
-            <td class="table-actions">
-                <button class="btn btn-sm btn-outline-primary edit-btn"><i class="bi bi-pencil"></i></button>
-                <button class="btn btn-sm btn-outline-danger delete-btn"><i class="bi bi-trash"></i></button>
-            </td>
-        `;
-        patientTableBody.appendChild(row);
+        // Localización
+        row.appendChild(tdText(paciente.localizacion));
+        // Sitio
+        row.appendChild(tdText(paciente.sitio));
+        // Nombre
+        row.appendChild(tdText(paciente.nombre));
+        // Diagnóstico
+        row.appendChild(tdText(paciente.diagnostico));
 
-        row.querySelector('.edit-btn').addEventListener('click', () => handleEdit(paciente.id));
-        row.querySelector('.delete-btn').addEventListener('click', () => handleDelete(paciente.id));
+        // Tratamiento (select)
+        const tdTrat = document.createElement('td');
+        const selTrat = document.createElement('select');
+        selTrat.className = 'form-select form-select-sm inline-select';
+        ['Médico','IQ Local','IQ General'].forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt; o.textContent = opt;
+            if (opt === paciente.tratamiento) o.selected = true;
+            selTrat.appendChild(o);
+        });
+        selTrat.addEventListener('change', (e) => {
+            handleInlineUpdate(paciente.id, 'tratamiento', e.target.value);
+        });
+        tdTrat.appendChild(selTrat);
+        row.appendChild(tdTrat);
+
+        // Comentario
+        row.appendChild(tdText(paciente.comentario));
+
+        // Estado (select con color)
+        const tdEstado = document.createElement('td');
+        const selEstado = document.createElement('select');
+        selEstado.className = 'form-select form-select-sm inline-select';
+        ['Pendiente','Ingresado','Alta'].forEach(opt => {
+            const o = document.createElement('option');
+            o.value = opt; o.textContent = opt;
+            if (opt === paciente.estado) o.selected = true;
+            selEstado.appendChild(o);
+        });
+        setSelectColor(selEstado);
+        selEstado.addEventListener('change', (e) => {
+            handleInlineUpdate(paciente.id, 'estado', e.target.value);
+            setSelectColor(e.target);
+            if (e.target.value === 'Pendiente') {
+                row.classList.add('patient-pending');
+            } else {
+                row.classList.remove('patient-pending');
+            }
+        });
+        tdEstado.appendChild(selEstado);
+        row.appendChild(tdEstado);
+
+        // Acciones
+        const tdActions = document.createElement('td');
+        tdActions.className = 'table-actions';
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-sm btn-outline-primary edit-btn';
+        editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+        editBtn.addEventListener('click', () => handleEdit(paciente.id));
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-sm btn-outline-danger delete-btn';
+        delBtn.innerHTML = '<i class="bi bi-trash"></i>';
+        delBtn.addEventListener('click', () => handleDelete(paciente.id));
+        tdActions.appendChild(editBtn);
+        tdActions.appendChild(delBtn);
+        row.appendChild(tdActions);
+
+        patientTableBody.appendChild(row);
       }
       
       async function handleInlineUpdate(id, field, value) {
         const patientRef = doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', id);
         try {
-            await updateDoc(patientRef, { [field]: value });
+            await updateDoc(patientRef, { [field]: value, updatedAt: serverTimestamp() });
             const patientIndex = pacientesCache.findIndex(p => p.id === id);
             if (patientIndex > -1) {
                 pacientesCache[patientIndex][field] = value;
@@ -529,13 +559,13 @@
         if (paciente) {
             patientForm.reset();
             document.getElementById('patient-id').value = paciente.id;
-            document.getElementById('nombre').value = paciente.nombre;
-            document.getElementById('diagnostico').value = paciente.diagnostico;
-            document.getElementById('tratamiento').value = paciente.tratamiento;
-            document.getElementById('localizacion').value = paciente.localizacion;
-            document.getElementById('sitio').value = paciente.sitio;
-            document.getElementById('estado').value = paciente.estado;
-            document.getElementById('comentario').value = paciente.comentario || '';
+            document.getElementById('nombre').value = paciente.nombre ?? '';
+            document.getElementById('diagnostico').value = paciente.diagnostico ?? '';
+            document.getElementById('tratamiento').value = paciente.tratamiento ?? 'Médico';
+            document.getElementById('localizacion').value = paciente.localizacion ?? 'Urgencias';
+            document.getElementById('sitio').value = paciente.sitio ?? '';
+            document.getElementById('estado').value = paciente.estado ?? 'Pendiente';
+            document.getElementById('comentario').value = paciente.comentario ?? '';
             
             patientModalLabel.textContent = 'Editar Paciente';
             patientModal.show();
@@ -547,19 +577,23 @@
         const id = document.getElementById('patient-id').value;
         const pacienteData = {
             localizacion: document.getElementById('localizacion').value,
-            sitio: document.getElementById('sitio').value,
-            nombre: document.getElementById('nombre').value,
-            diagnostico: document.getElementById('diagnostico').value,
+            sitio: document.getElementById('sitio').value.trim(),
+            nombre: document.getElementById('nombre').value.trim(),
+            diagnostico: document.getElementById('diagnostico').value.trim(),
             tratamiento: document.getElementById('tratamiento').value,
-            comentario: document.getElementById('comentario').value,
+            comentario: document.getElementById('comentario').value.trim(),
             estado: document.getElementById('estado').value,
+            updatedAt: serverTimestamp()
         };
 
         try {
             if (id) {
                 await updateDoc(doc(db, 'guardias_activas', currentGuardiaId, 'pacientes', id), pacienteData);
             } else {
-                await addDoc(collection(db, 'guardias_activas', currentGuardiaId, 'pacientes'), pacienteData);
+                await addDoc(collection(db, 'guardias_activas', currentGuardiaId, 'pacientes'), {
+                    ...pacienteData,
+                    createdAt: serverTimestamp()
+                });
             }
             patientModal.hide();
             loadPatients();
