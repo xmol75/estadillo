@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Estadillo de guardia del Servicio de Cirugía General y del Aparato Digestivo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; background: #f3f3fa; }
+    header { text-align: center; margin-bottom: 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0; }
+    h2 { font-size: 1.1rem; font-weight: normal; margin-top: 0.25em; color: #444; }
+    .hidden { display: none; }
+    form, .controls { max-width: 700px; margin: 1rem auto; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 1px 8px #ccc3; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { border: 1px solid #dde; padding: 0.4em; text-align: center; }
+    th { background: #f5f5f8; }
+    .error { color: #C00; }
+    .stats { margin: 1rem auto; text-align: left; max-width: 700px; }
+    .controls { display: flex; justify-content: space-between; align-items: center; }
+    input, select, button, textarea { margin: 0.3em; padding: 0.5em; border-radius: 5px; border: 1px solid #ccc; }
+    input[type=checkbox] { width: auto; }
+    .eye { cursor: pointer; }
+    .actions button { margin: 0 0.1em; }
+    .btn { background: #4682B4; color: white; border: none; padding: 0.5em 1em; border-radius: 4px; margin-left: 0.3em;}
+    .btn:hover { background: #315f8e; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Estadillo de guardia del Servicio de Cirugía General y del Aparato Digestivo</h1>
+    <h2>Hospital Universirtario Son Espases</h2>
+    <div id="guardia-date"></div>
+    <button class="btn" id="btn-cambiar-guardia">Cambio de guardia</button>
+    <select id="select-fecha-guardia"></select>
+  </header>
+
+  <!-- Auth Section -->
+  <div id="auth-section">
+    <h3>Acceso</h3>
+    <form id="login-form">
+      <input type="email" id="email" placeholder="Email corporativo @ssib" required>
+      <div style="position:relative;display:inline-block;">
+        <input type="password" id="password" placeholder="Contraseña" required minlength="8" pattern="(?=.*[A-Z])(?=.*[!@#$&*])(?=.*[0-9]).{8,}">
+        <span class="eye" onclick="togglePass('password')">&#128065;</span>
+      </div>
+      <button type="submit" class="btn">Iniciar sesión</button>
+    </form>
+    <p>¿No tienes cuenta? <a href="#" onclick="showRegister()">Regístrate</a></p>
+    <form id="register-form" class="hidden">
+      <input type="email" id="reg-email" placeholder="Email corporativo @ssib" required>
+      <div style="position:relative;display:inline-block;">
+        <input type="password" id="reg-password" placeholder="Contraseña" required minlength="8" pattern="(?=.*[A-Z])(?=.*[!@#$&*])(?=.*[0-9]).{8,}">
+        <span class="eye" onclick="togglePass('reg-password')">&#128065;</span>
+      </div>
+      <small>La contraseña debe tener mínimo 8 caracteres, 1 mayúscula, 1 número y 1 símbolo especial.</small><br>
+      <button type="submit" class="btn">Registrarse</button>
+      <button type="button" onclick="showLogin()">Ya tengo cuenta</button>
+    </form>
+    <p id="auth-msg" class="error"></p>
+  </div>
+
+  <!-- Pacientes Section -->
+  <div id="app-section" class="hidden">
+    <div class="controls">
+      <span id="user-info"></span>
+      <button onclick="logout()" class="btn">Cerrar sesión</button>
+    </div>
+    <form id="add-form">
+      <select id="localizacion" required>
+        <option value="">Localización</option>
+        <option value="Urgencias">Urgencias</option>
+        <option value="Planta">Planta</option>
+      </select>
+      <input type="text" id="sitio" placeholder="Sitio/cama" required>
+      <input type="text" id="nombre" placeholder="Nombre y Apellidos" required>
+      <label><input type="checkbox" id="ingreso"> Ingreso</label>
+      <input type="text" id="unidad" placeholder="Unidad" required>
+      <input type="text" id="diagnostico" placeholder="Diagnóstico" required>
+      <select id="tratamiento" required>
+        <option value="">Tratamiento</option>
+        <option value="IQ local">IQ local</option>
+        <option value="IQ general">IQ general</option>
+        <option value="Médico">Médico</option>
+      </select>
+      <input type="text" id="comentario" placeholder="Comentario">
+      <button type="submit" class="btn">Añadir paciente</button>
+    </form>
+    <div>
+    <table id="tabla-pacientes">
+      <thead>
+        <tr>
+          <th>Localización</th><th>Sitio</th><th>Nombre y Apellidos</th>
+          <th>Ingreso</th><th>Unidad</th><th>Diagnóstico</th><th>Tratamiento</th><th>Comentario</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <div class="stats" id="stats"></div>
+    <button onclick="exportarPDF()" class="btn">Exportar a PDF</button>
+  </div>
+
+  <!-- Firebase y jsPDF -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, setDoc, getDoc, doc, updateDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    // Configuración Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBHXJyws_bbbgn8qfkhSwtsqMI6KD8wT_c",
+      authDomain: "estadillo-e5cdc.firebaseapp.com",
+      projectId: "estadillo-e5cdc",
+      storageBucket: "estadillo-e5cdc.firebasestorage.app",
+      messagingSenderId: "626738853027",
+      appId: "1:626738853027:web:5379647c00479b47107b16"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth();
+    const db = getFirestore(app);
+
+    // ---- Utilidades Fecha/Guardia --------------------
+    let guardiaFecha = obtenerFecha();
+    document.getElementById('guardia-date').innerText = 'Guardia: ' + guardiaFecha;
+
+    // Listar guardias previas (simboliza historial)
+    cargarGuardias();
+
+    document.getElementById('btn-cambiar-guardia').onclick = cambiarGuardia;
+
+    document.getElementById('select-fecha-guardia').onchange = function() {
+      guardiaFecha = this.value;
+      document.getElementById('guardia-date').innerText = 'Guardia: ' + guardiaFecha;
+      if(document.getElementById('app-section').classList.contains('hidden')) return;
+      cargarPacientes();
+    }
+
+    function obtenerFecha() {
+      let d = new Date();
+      return d.toLocaleDateString('es-ES');
+    }
+
+    async function cargarGuardias() {
+      const gs = document.getElementById('select-fecha-guardia');
+      gs.innerHTML = '';
+      const colRef = collection(db, "guardias");
+      const docs = await getDocs(colRef);
+      const fechas = [];
+      docs.forEach(doc => fechas.push(doc.id));
+      fechas.sort().reverse();
+      fechas.forEach(f => {
+        let opt = document.createElement('option');
+        opt.value = f; opt.innerText = f;
+        gs.appendChild(opt);
+      });
+      if (!fechas.includes(guardiaFecha)) {
+        let opt = document.createElement('option');
+        opt.value = guardiaFecha; opt.innerText = guardiaFecha;
+        opt.selected = true;
+        gs.insertBefore(opt, gs.firstChild);
+      }
+      gs.value = guardiaFecha;
+    }
+
+    // -------- AUTENTICACION ----------
+    const loginForm = document.getElementById('login-form');
+    const regForm = document.getElementById('register-form');
+    const msg = document.getElementById('auth-msg');
+    loginForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const pass = document.getElementById('password').value;
+      msg.innerText = '';
+      if(!validarEmail(email)) { msg.innerText = "Solo emails de @ssib"; return;}
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        if (err.code && err.code.includes("auth/")) msg.innerText = "Error: " + err.code.replace("auth/","");
+        else msg.innerText = "Acceso denegado";
+      }
+    };
+
+    regForm.onsubmit = async function(e) {
+      e.preventDefault();
+      const email = document.getElementById('reg-email').value.trim();
+      const pass = document.getElementById('reg-password').value;
+      msg.innerText = '';
+      if(!validarEmail(email)) { msg.innerText = "Solo emails de @ssib"; return;}
+      if(!validarContrasena(pass)) {msg.innerText = "Contraseña insegura.";}
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        await sendEmailVerification(cred.user);
+        msg.innerText = "Verifica tu email para poder iniciar.";
+        regForm.reset();
+      } catch (err) {
+        if (err.code && err.code.includes("auth/")) msg.innerText = "Error: " + err.code.replace("auth/","");
+        else msg.innerText = "No se pudo registrar";
+      }
+    };
+
+    function validarEmail(email) {
+      return email.endsWith("@ssib");
+    }
+    function validarContrasena(pass) {
+      return pass.length>=8 && /[A-Z]/.test(pass) && /\d/.test(pass) && /[!@#$&*]/.test(pass);
+    }
+    function togglePass(id) {
+      const el = document.getElementById(id);
+      el.type = el.type==="password"?"text":"password";
+    }
+    function showRegister(){ regForm.classList.remove("hidden"); loginForm.classList.add("hidden"); }
+    function showLogin(){ regForm.classList.add("hidden"); loginForm.classList.remove("hidden"); }
+
+    async function logout() { await signOut(auth); }
+
+    // Establece el UI según autenticación
+    onAuthStateChanged(auth, user => {
+      if(user && user.emailVerified) {
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('app-section').classList.remove('hidden');
+        document.getElementById('user-info').innerText = user.email;
+        cargarPacientes();
+      } else {
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('app-section').classList.add('hidden');
+        msg.innerText = user && !user.emailVerified ? "Debes verificar tu correo para entrar." : "";
+      }
+    });
+
+    // PACIENTES: CRUD
+    async function cargarPacientes() {
+      const tbody = document.querySelector("#tabla-pacientes tbody");
+      tbody.innerHTML = '<tr><td colspan="9">Cargando...</td></tr>';
+
+      const col = collection(db, "guardias", guardiaFecha, "pacientes");
+      const docs = await getDocs(col);
+      tbody.innerHTML = '';
+      let stats = { total: 0, urg: 0, planta:0, iqTotal:0, iqLoc:0, iqGen:0 };
+      docs.forEach(docu=>{
+        const d = docu.data(); stats.total++;
+        if(d.localizacion==="Urgencias") stats.urg++;
+        if(d.localizacion==="Planta") stats.planta++;
+        if(d.tratamiento==="IQ local") {stats.iqTotal++; stats.iqLoc++;}
+        if(d.tratamiento==="IQ general") {stats.iqTotal++; stats.iqGen++;}
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+        <td>${d.localizacion}</td>
+        <td>${d.sitio}</td>
+        <td>${d.nombre}</td>
+        <td>${d.ingreso ? "Sí" : "No"}</td>
+        <td>${d.unidad}</td>
+        <td>${d.diagnostico}</td>
+        <td>${d.tratamiento}</td>
+        <td>${d.comentario?d.comentario:""}</td>
+        <td class="actions">
+          <button onclick="editarPaciente('${docu.id}')" class="btn">Editar</button>
+          <button onclick="borrarPaciente('${docu.id}')" class="btn">Borrar</button>
+        </td>
+        `;
+        tbody.appendChild(tr);
+      });
+      mostrarStats(stats);
+    }
+
+    function mostrarStats(s) {
+      document.getElementById('stats').innerHTML = `
+        <b>Total vistos:</b> ${s.total} |
+        <b>Urgencias:</b> ${s.urg} |
+        <b>Planta:</b> ${s.planta} |
+        <b>IQ totales:</b> ${s.iqTotal} |
+        <b>IQ Locales:</b> ${s.iqLoc} |
+        <b>IQ Generales:</b> ${s.iqGen}
+      `;
+    }
+
+    // Añadir o editar
+    let editarId = null;
+    document.getElementById('add-form').onsubmit = async function(e) {
+      e.preventDefault();
+      let d = {
+        localizacion: document.getElementById('localizacion').value,
+        sitio: document.getElementById('sitio').value,
+        nombre: document.getElementById('nombre').value,
+        ingreso: document.getElementById('ingreso').checked,
+        unidad: document.getElementById('unidad').value,
+        diagnostico: document.getElementById('diagnostico').value,
+        tratamiento: document.getElementById('tratamiento').value,
+        comentario: document.getElementById('comentario').value
+      };
+      const col = collection(db, "guardias", guardiaFecha, "pacientes");
+      if(editarId) {
+        await updateDoc(doc(col, editarId), d);
+        editarId = null;
+      } else {
+        await addDoc(col, d);
+      }
+      this.reset(); cargarPacientes();
+    }
+
+    window.editarPaciente = async function(id) {
+      const col = collection(db, "guardias", guardiaFecha, "pacientes");
+      const d = (await getDoc(doc(col, id))).data();
+      document.getElementById('localizacion').value = d.localizacion;
+      document.getElementById('sitio').value = d.sitio;
+      document.getElementById('nombre').value = d.nombre;
+      document.getElementById('ingreso').checked = d.ingreso;
+      document.getElementById('unidad').value = d.unidad;
+      document.getElementById('diagnostico').value = d.diagnostico;
+      document.getElementById('tratamiento').value = d.tratamiento;
+      document.getElementById('comentario').value = d.comentario;
+      editarId = id;
+      window.scrollTo(0,0);
+    }
+    window.borrarPaciente = async function(id) {
+      if(!confirm("¿Borrar este paciente?")) return;
+      const col = collection(db, "guardias", guardiaFecha, "pacientes");
+      await deleteDoc(doc(col, id)); cargarPacientes();
+    }
+
+    // Cambio de guardia: Limpia lista guardando los pacientes no resueltos
+    async function cambiarGuardia() {
+      if(!confirm("Cerrar guardia actual y crear nueva?")) return;
+      // Aquí se pueden filtrar y trasladar los pacientes no resueltos si necesario
+      guardiaFecha = obtenerFecha();
+      document.getElementById('guardia-date').innerText = 'Guardia: ' + guardiaFecha;
+      await cargarGuardias();
+      await cargarPacientes();
+    }
+
+    // Exportar a PDF
+    window.exportarPDF = async function() {
+      // Deliberadamente usando jsPDF rápida CDN
+      const { jsPDF } = await import('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.es.min.js');
+      let doc = new jsPDF();
+      doc.text("Estadillo de guardia - " + guardiaFecha, 10, 10);
+      let y = 20;
+      for(let row of document.querySelectorAll("#tabla-pacientes tbody tr")) {
+        let datos = [];
+        for(let td of row.querySelectorAll("td:not(.actions)")) { datos.push(td.innerText); }
+        doc.text(datos.join(" | "), 10, y += 10);
+      }
+      doc.save(`guardia-${guardiaFecha.replace(/\//g,"-")}.pdf`);
+    };
+  </script>
+</body>
+</html>
