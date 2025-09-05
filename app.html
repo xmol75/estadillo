@@ -60,6 +60,52 @@
 
     .filter-btns .btn.active{ background:#0d6efd; color:#fff; }
 
+    /* --- ADAPTACIÓN RESPONSIVE PARA MÓVIL --- */
+    @media (max-width: 600px) {
+      .header-card, .summary-card { padding: 0.7rem 0.5rem; }
+      .toolbar, #controls-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+      }
+      .brand h1 { font-size: 1.1rem; }
+      .big-date { font-size: 1.1rem; }
+      table.table thead { display: none; }
+      table.table, .table-responsive, .table-striped {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+      }
+      table.table tbody tr {
+        display: block;
+        margin-bottom: 1rem;
+        border-radius: 0.6rem;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        background: #fff;
+        border: 1px solid #e9ecef;
+        padding: .5rem .6rem;
+      }
+      table.table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+        padding: 0.25rem 0;
+        font-size: 0.99rem;
+      }
+      .table-actions { margin-top: .5rem; }
+      table.table td:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: #666;
+        margin-right: .7rem;
+        min-width: 110px;
+        display: block;
+        flex: 1 1 auto;
+      }
+      .btn, .btn-sm { font-size: 0.93rem; padding: .35rem .7rem; }
+    }
+
     @media print{
       #controls-bar, .table-actions, #change-guard-btn, #import-guard-btn, #add-patient-btn, #search-date, #btn-ver-actual, #export-pdf-btn, .btn-logout{ display:none !important; }
       .header-card{ box-shadow:none; border:0; }
@@ -150,7 +196,7 @@
             </div>
           </form>
         </div>
-        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button id="save-patient-btn" type="button" class="btn btn-primary">Guardar cambios</button></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button id="save-patient-btn" type="button" class="btn btn-primary">Guardar</button></div>
       </div>
     </div>
   </div>
@@ -193,7 +239,15 @@
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = { apiKey:"AIzaSyBHXJyws_bbbgn8qfkhSwtsqMI6KD8wT_c", authDomain:"estadillo-e5cdc.firebaseapp.com", projectId:"estadillo-e5cdc", storageBucket:"estadillo-e5cdc.appspot.com", messagingSenderId:"626738853027", appId:"1:626738853027:web:5379647c00479b47107b16" };
+    // Nota: si tu config en el repo es distinta, conserva la tuya al subir.
+    const firebaseConfig = {
+      apiKey: "AIzaSyBHXJyws_bbbgn8qfkhSwtsqMI6KD8wT_c",
+      authDomain: "estadillo-e5cdc.firebaseapp.com",
+      projectId: "estadillo-e5cdc",
+      storageBucket: "estadillo-e5cdc.appspot.com",
+      messagingSenderId: "000000000000",
+      appId: "1:000000000000:web:abcdef123456"
+    };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db   = getFirestore(app);
@@ -205,7 +259,7 @@
 
     const toDate = (v)=> (v && typeof v.toDate === 'function') ? v.toDate() : (v instanceof Date ? v : (v ? new Date(v) : null));
     const ymd = (d)=> d? `${String(d.getFullYear())}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
-    const pretty = (d)=>{ if(!d) return ''; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yyyy=d.getFullYear(); return `${dd}/${mm}/${yyyy}`; };
+    const pretty = (d)=>{ if(!d) return ''; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yyyy=d.getFullYear(); return `${dd}/${mm}/${yyyy}`; }
     const norm = (s)=> (s??'').toString().trim().toLowerCase();
 
     // Estado
@@ -335,14 +389,14 @@
     function colorizeSelect(el){
       if(!el) return; el.classList.remove('select-trat-med','select-trat-loc','select-trat-gen','select-trat-dre','select-est-pte','select-est-ing','select-est-alt');
       const v = el.value;
-      if(el.dataset.inline.endsWith('|trat')){
+      if(el.dataset.inline && el.dataset.inline.endsWith('|trat')){
         el.classList.add('colored', {'Médico':'select-trat-med','IQ Local':'select-trat-loc','IQ General':'select-trat-gen','Drenaje':'select-trat-dre'}[v]||'select-trat-med');
       } else {
         el.classList.add('colored', {'Pendiente':'select-est-pte','Ingresado':'select-est-ing','Alta':'select-est-alt'}[v]||'select-est-pte');
       }
     }
 
-    // ===== Render tabla =====
+    // ===== Render tabla (modificada para mobile: td[data-label]) =====
     function renderTable(){
       tbody.innerHTML='';
       const items = pacientesCache.filter(p=>{
@@ -358,15 +412,16 @@
         const estSel  = `<select class='form-select form-select-sm' data-inline='${p.id}|estado'>${['Pendiente','Ingresado','Alta'].map(o=>`<option ${o===(p.estado||'Pendiente')?'selected':''}>${o}</option>`).join('')}</select>`;
         const tratRead = `<span class="badge-pill ${tratPillClass(p.trat||'Médico')}">${iconTrat(p.trat)} ${esc(p.trat||'Médico')}</span>`;
         const estRead = `<span class="badge-pill ${estadoPillClass(p.estado||'Pendiente')}">${iconEstado(p.estado)} ${esc(p.estado||'Pendiente')}</span>`;
+
         tr.innerHTML = `
-          <td>${locPill(p.ubicacion||'Urgencias')}</td>
-          <td>${viewingArchived ? esc(p.sitio||'') : `<span class='editable' data-edittext='${p.id}|sitio'>${esc(p.sitio||'')}</span>`}</td>
-          <td>${viewingArchived ? esc(p.nombre||'') : `<span class='editable' data-edittext='${p.id}|nombre'>${esc(p.nombre||'')}</span>`}</td>
-          <td>${viewingArchived ? esc(p.dx||'') : `<span class='editable' data-edittext='${p.id}|dx'>${esc(p.dx||'')}</span>`}</td>
-          <td>${viewingArchived ? tratRead : tratSel}</td>
-          <td>${viewingArchived ? esc(p.com||'') : `<span class='editable' data-edittext='${p.id}|com'>${esc(p.com||'')}</span>`}</td>
-          <td>${viewingArchived ? estRead : estSel}</td>
-          <td class="text-end table-actions">${!viewingArchived?`
+          <td data-label="Localización">${locPill(p.ubicacion||'Urgencias')}</td>
+          <td data-label="Sitio">${viewingArchived ? esc(p.sitio||'') : `<span class='editable' data-edittext='${p.id}|sitio'>${esc(p.sitio||'')}</span>`}</td>
+          <td data-label="Nombre y Apellidos">${viewingArchived ? esc(p.nombre||'') : `<span class='editable' data-edittext='${p.id}|nombre'>${esc(p.nombre||'')}</span>`}</td>
+          <td data-label="Diagnóstico">${viewingArchived ? esc(p.dx||'') : `<span class='editable' data-edittext='${p.id}|dx'>${esc(p.dx||'')}</span>`}</td>
+          <td data-label="Tratamiento">${viewingArchived ? tratRead : tratSel}</td>
+          <td data-label="Comentario">${viewingArchived ? esc(p.com||'') : `<span class='editable' data-edittext='${p.id}|com'>${esc(p.com||'')}</span>`}</td>
+          <td data-label="Estado">${viewingArchived ? estRead : estSel}</td>
+          <td data-label="Acciones" class="text-end table-actions">${!viewingArchived?`
             <button class='btn btn-sm btn-outline-primary me-1' data-edit='${p.id}' title='Editar'><i class='bi bi-pencil'></i></button>
             <button class='btn btn-sm btn-outline-danger' data-del='${p.id}' title='Borrar'><i class='bi bi-trash'></i></button>`:''}
           </td>`;
