@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estadillo - CGD</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    :root{
+      --urg-bg:#d6e8ff; --pla-bg:#d9f7e1;
+      --trat-med-bg:#dee2e6; --trat-med-fg:#212529;
+      --trat-loc-bg:#ffe08a; --trat-loc-fg:#7a5a00;
+      --trat-gen-bg:#ffb685; --trat-gen-fg:#6b2e00;
+      --trat-dre-bg:#d7c2ff; --trat-dre-fg:#3f2a88;
+      --est-pte-bg:#ffe08a; --est-pte-fg:#7a5a00;
+      --est-ing-bg:#bad4ff; --est-ing-fg:#0b5ed7;
+      --est-alt-bg:#baf2c8; --est-alt-fg:#0f6b3a;
+    }
+    body{ background:#f8f9fa; }
+    .brand h1{ font-weight:700; letter-spacing:.3px; }
+    .big-date{ font-size:1.6rem; font-weight:800; }
+    .toolbar .btn{ display:inline-flex; align-items:center; gap:.4rem; }
+    .btn-logout{ background:#dc3545; color:#fff; border-color:#dc3545; }
+    .btn-logout:hover{ background:#c62f3e; color:#fff; }
+
+    .header-card{ background:#fff; border:1px solid #e9ecef; border-radius:.8rem; padding:1rem 1.25rem; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+    .summary-card{ box-shadow:0 1px 3px rgba(0,0,0,.08); border:1px solid #e9ecef; border-radius:.8rem; padding:1rem; background:#fff; }
+
+    table.table{ --bs-table-striped-bg: #f6f8fb; }
+    .table thead th{ white-space:nowrap; font-weight:600; }
+    .table td, .table th{ vertical-align:middle; }
+
+    /* Badges/Pills de lectura potentes */
+    .badge-pill{ border-radius:999px; padding:.45rem .7rem; font-weight:800; font-size:.82rem; display:inline-flex; align-items:center; gap:.35rem; }
+    .pill-urg{ background:var(--urg-bg); color:#0b5ed7; }
+    .pill-pla{ background:var(--pla-bg); color:#198754; }
+    .pill-trat-med{ background:var(--trat-med-bg); color:var(--trat-med-fg); }
+    .pill-trat-loc{ background:var(--trat-loc-bg); color:var(--trat-loc-fg); }
+    .pill-trat-gen{ background:var(--trat-gen-bg); color:var(--trat-gen-fg); }
+    .pill-trat-dre{ background:var(--trat-dre-bg); color:var(--trat-dre-fg); }
+    .pill-estado-pte{ background:var(--est-pte-bg); color:var(--est-pte-fg); }
+    .pill-estado-ing{ background:var(--est-ing-bg); color:var(--est-ing-fg); }
+    .pill-estado-alt{ background:var(--est-alt-bg); color:var(--est-alt-fg); }
+
+    /* Selects coloreados (modo edición) */
+    select.colored{ color:#111; font-weight:800; border-width:2px; }
+    .select-trat-med{ background:var(--trat-med-bg) !important; color:var(--trat-med-fg) !important; }
+    .select-trat-loc{ background:var(--trat-loc-bg) !important; color:var(--trat-loc-fg) !important; }
+    .select-trat-gen{ background:var(--trat-gen-bg) !important; color:var(--trat-gen-fg) !important; }
+    .select-trat-dre{ background:var(--trat-dre-bg) !important; color:var(--trat-dre-fg) !important; }
+    .select-est-pte{ background:var(--est-pte-bg) !important; color:var(--est-pte-fg) !important; }
+    .select-est-ing{ background:var(--est-ing-bg) !important; color:var(--est-ing-fg) !important; }
+    .select-est-alt{ background:var(--est-alt-bg) !important; color:var(--est-alt-fg) !important; }
+
+    /* date compacto y editable */
+    #search-date{ width: 130px; padding-right:.35rem; }
+    .editable{ border-bottom:1px dashed #adb5bd; cursor:text; }
+    .editable:hover{ background:#f1f3f5; }
+
+    .filter-btns .btn.active{ background:#0d6efd; color:#fff; }
+
+    @media print{
+      #controls-bar, .table-actions, #change-guard-btn, #import-guard-btn, #add-patient-btn, #search-date, #btn-ver-actual, #export-pdf-btn, .btn-logout{ display:none !important; }
+      .header-card{ box-shadow:none; border:0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container my-3">
+    <!-- Header / fecha + acciones -->
+    <div class="header-card mb-3">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div class="brand">
+          <h1 class="h4 mb-1">Estadillo - CGD</h1>
+          <div class="big-date" id="guardia-date">Guardia del —</div>
+        </div>
+        <div class="toolbar d-flex flex-wrap align-items-center gap-2">
+          <input type="date" id="search-date" class="form-control form-control-sm" title="Buscar guardia por día" />
+          <button id="btn-ver-actual" class="btn btn-outline-secondary btn-sm"><i class="bi bi-clock-history"></i> Ver actual</button>
+          <button id="import-guard-btn" class="btn btn-info btn-sm"><i class="bi bi-download"></i> Importar archivada</button>
+          <button id="export-pdf-btn" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer"></i> PDF</button>
+          <button id="change-guard-btn" class="btn btn-warning btn-sm"><i class="bi bi-archive"></i> Finalizar y cambiar</button>
+          <button id="logout-btn" class="btn btn-logout btn-sm"><i class="bi bi-box-arrow-right"></i> Cerrar sesión</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros rápidos + añadir -->
+    <div id="controls-bar" class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+      <div class="btn-group filter-btns" role="group">
+        <button class="btn btn-outline-primary btn-sm active" data-filter="todos">Todos</button>
+        <button class="btn btn-outline-primary btn-sm" data-filter="pendientes">Pendientes</button>
+        <button class="btn btn-outline-primary btn-sm" data-filter="resueltos">Resueltos</button>
+      </div>
+      <div class="d-flex gap-2">
+        <button id="add-patient-btn" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Añadir paciente</button>
+      </div>
+    </div>
+
+    <!-- Tabla pacientes -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped align-middle" id="patients-table">
+            <thead>
+              <tr>
+                <th>Localización</th>
+                <th>Sitio</th>
+                <th>Nombre y Apellidos</th>
+                <th>Diagnóstico</th>
+                <th>Tratamiento</th>
+                <th>Comentario</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="patient-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumen -->
+    <section class="mb-3">
+      <div class="row g-3">
+        <div class="col-md-4"><div class="summary-card"><h6 class="mb-2">Totales</h6><div>Pacientes: <strong id="sum-total">0</strong></div><div>Urgencias: <strong id="sum-urg">0</strong></div><div>Planta: <strong id="sum-planta">0</strong></div></div></div>
+        <div class="col-md-4"><div class="summary-card"><h6 class="mb-2">Situación</h6><div>Dados de alta: <strong id="sum-alta">0</strong></div><div>Ingresados: <strong id="sum-ing">0</strong></div><div>Pendientes: <strong id="sum-pte">0</strong></div></div></div>
+        <div class="col-md-4"><div class="summary-card"><h6 class="mb-2">Tratamientos</h6><div>IQ totales: <strong id="sum-iq-total">0</strong></div><div>IQ generales: <strong id="sum-iq-gen">0</strong></div><div>IQ locales: <strong id="sum-iq-loc">0</strong></div><div>Drenajes: <strong id="sum-iq-dren">0</strong></div></div></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Modal Paciente -->
+  <div class="modal fade" id="patient-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Paciente</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body">
+          <form id="patient-form">
+            <input type="hidden" id="patient-id" />
+            <div class="row g-2">
+              <div class="col-md-6"><label class="form-label">Nombre y Apellidos</label><input class="form-control" id="p-nombre" required></div>
+              <div class="col-md-6"><label class="form-label">Diagnóstico</label><input class="form-control" id="p-dx"></div>
+              <div class="col-md-4"><label class="form-label">Tratamiento</label><select class="form-select" id="p-trat"><option>Médico</option><option>IQ Local</option><option>IQ General</option><option>Drenaje</option></select></div>
+              <div class="col-md-4"><label class="form-label">Localización</label><select class="form-select" id="p-ubic"><option>Urgencias</option><option>Planta</option></select></div>
+              <div class="col-md-4"><label class="form-label">Sitio (Cama/Box)</label><input class="form-control" id="p-sitio"></div>
+              <div class="col-md-4"><label class="form-label">Estado</label><select class="form-select" id="p-estado"><option>Pendiente</option><option>Ingresado</option><option>Alta</option></select></div>
+              <div class="col-md-8"><label class="form-label">Comentario</label><textarea class="form-control" id="p-com" rows="2"></textarea></div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button id="save-patient-btn" type="button" class="btn btn-primary">Guardar cambios</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal lista de archivadas para importar -->
+  <div class="modal fade" id="archive-list-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title">Importar guardia archivada</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body" id="archive-list-body"></div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal confirmar finalización -->
+  <div class="modal fade" id="finish-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmar finalización de guardia</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p>Vas a finalizar la guardia actual. Esto archivará el estadillo en la fecha anterior al día de hoy y creará una nueva guardia.</p>
+          <p class="text-danger fw-semibold">Advertencia: Esta acción no podrá deshacerse desde la interfaz.</p>
+          <p>¿Deseas continuar con la finalización?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="finish-continue" class="btn btn-warning">Continuar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, writeBatch, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = { apiKey:"AIzaSyBHXJyws_bbbgn8qfkhSwtsqMI6KD8wT_c", authDomain:"estadillo-e5cdc.firebaseapp.com", projectId:"estadillo-e5cdc", storageBucket:"estadillo-e5cdc.appspot.com", messagingSenderId:"626738853027", appId:"1:626738853027:web:5379647c00479b47107b16" };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+
+    // ===== Utils de texto/fecha seguras =====
+    const esc = (s)=> String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+    // ↑ NOTA: en tiempo de construcción del string JS las barras/quotes ya están escapadas; abajo usaré un esc más robusto si hiciera falta
+    const esc2 = (s)=> String(s??'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+
+    const toDate = (v)=> (v && typeof v.toDate === 'function') ? v.toDate() : (v instanceof Date ? v : (v ? new Date(v) : null));
+    const ymd = (d)=> d? `${String(d.getFullYear())}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'';
+    const pretty = (d)=>{ if(!d) return ''; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yyyy=d.getFullYear(); return `${dd}/${mm}/${yyyy}`; };
+    const norm = (s)=> (s??'').toString().trim().toLowerCase();
+
+    // Estado
+    let currentGuardiaId = null;
+    let pacientesCache = [];
+    let currentFilter = 'todos'; // todos | pendientes | resueltos (altas+ingresados)
+    let viewingArchived = false;
+    let unsubPatients = null;
+
+    // UI refs
+    const tbody = document.getElementById('patient-tbody');
+    const patientModalEl = document.getElementById('patient-modal');
+    const patientModal   = new bootstrap.Modal(patientModalEl);
+    const archiveListModal = new bootstrap.Modal(document.getElementById('archive-list-modal'));
+    const finishModal = new bootstrap.Modal(document.getElementById('finish-modal'));
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user||!user.emailVerified){ location.href='index.html'; return; }
+      await loadGuardiaData();
+    });
+
+    // Botones
+    document.getElementById('logout-btn').addEventListener('click', async()=>{ await signOut(auth); location.href='index.html'; });
+    document.getElementById('export-pdf-btn').addEventListener('click', ()=> window.print());
+    document.getElementById('add-patient-btn').addEventListener('click', ()=>{ if(!viewingArchived) openPatientForm(); });
+    document.getElementById('save-patient-btn').addEventListener('click', savePatient);
+    document.getElementById('import-guard-btn').addEventListener('click', openImportModal);
+    document.getElementById('change-guard-btn').addEventListener('click', ()=> finishModal.show());
+    document.getElementById('finish-continue').addEventListener('click', finalizeGuardia);
+    document.getElementById('btn-ver-actual').addEventListener('click', loadGuardiaData);
+
+    // Filtros
+    document.querySelectorAll('[data-filter]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ document.querySelectorAll('[data-filter]').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); currentFilter = btn.dataset.filter; renderTable(); });
+    });
+
+    // Buscar por día
+    const searchDateInput = document.getElementById('search-date');
+    const todayStr = new Date().toISOString().split('T')[0];
+    searchDateInput.max = todayStr;
+    searchDateInput.addEventListener('change', async ()=>{ const val = searchDateInput.value; if(!val) return; await viewByDate(val); });
+
+    // ===== Guardia activa: datos en vivo =====
+    async function loadGuardiaData(){
+      viewingArchived = false; toggleControls(true);
+      if(unsubPatients){ unsubPatients(); unsubPatients = null; }
+
+      const stateSnap = await getDoc(doc(db,'app_state','current_guard'));
+      if(!stateSnap.exists()){
+        const newRef = await addDoc(collection(db,'guardias_activas'),{ createdAt: serverTimestamp(), startDate: new Date() });
+        await setDoc(doc(db,'app_state','current_guard'),{ activeGuardiaId: newRef.id, startDate: new Date() });
+      }
+      const state = (await getDoc(doc(db,'app_state','current_guard'))).data();
+      currentGuardiaId = state.activeGuardiaId;
+      setHeaderDate(toDate(state.startDate) || new Date(), false);
+
+      subscribePatients();
+    }
+
+    function subscribePatients(){
+      if(unsubPatients){ unsubPatients(); unsubPatients=null; }
+      try{
+        const qy = query(collection(db,'guardias_activas',currentGuardiaId,'pacientes'), orderBy('createdAt','asc'));
+        unsubPatients = onSnapshot(qy,(snap)=>{ pacientesCache = snap.docs.map(d=>({id:d.id,...d.data()})); renderTable(); updateSummary(); });
+      }catch(e){
+        unsubPatients = onSnapshot(collection(db,'guardias_activas',currentGuardiaId,'pacientes'),(snap)=>{ pacientesCache = snap.docs.map(d=>({id:d.id,...d.data()})); renderTable(); updateSummary(); });
+      }
+    }
+
+    // ===== Ver por fecha: activa si coincide, si no archivada =====
+    async function viewByDate(dateStr){
+      const st = await getDoc(doc(db,'app_state','current_guard'));
+      const sd = toDate(st.data()?.startDate);
+      if(ymd(sd)===dateStr){ await loadGuardiaData(); return; }
+      await viewArchivedByDate(dateStr);
+    }
+
+    // ===== Archivada por fecha (solo lectura) =====
+    async function viewArchivedByDate(dateStr){
+      if(unsubPatients){ unsubPatients(); unsubPatients=null; }
+      viewingArchived = true; toggleControls(false);
+
+      const snap = await getDocs(collection(db,'guardias_archivadas'));
+      const list = snap.docs.map(d=>({ id:d.id, ...d.data() }))
+        .filter(d=>{ const a=ymd(toDate(d.closedAt)); const b=ymd(toDate(d.startDate)); return a===dateStr || b===dateStr; })
+        .sort((x,y)=>{ const dx = toDate(x.closedAt||x.startDate)||new Date(0); const dy = toDate(y.closedAt||y.startDate)||new Date(0); return dy-dx; });
+
+      if(list.length===0){ alert('No hay guardias archivadas ese día.'); await loadGuardiaData(); return; }
+      const arch = list[0];
+      setHeaderDate(toDate(arch.closedAt || arch.startDate) || new Date(dateStr), true);
+      const ps = await getDocs(collection(db,'guardias_archivadas', arch.id, 'pacientes'));
+      pacientesCache = ps.docs.map(d=>({ id:d.id, ...d.data() }));
+      renderTable(); updateSummary();
+    }
+
+    function toggleControls(editable){
+      document.getElementById('add-patient-btn').classList.toggle('d-none', !editable);
+      document.getElementById('import-guard-btn').classList.toggle('d-none', !editable);
+      document.getElementById('change-guard-btn').classList.toggle('d-none', !editable);
+    }
+
+    function setHeaderDate(d, archived){
+      document.getElementById('guardia-date').textContent = `Guardia del ${pretty(d)}${archived?' (archivada)':''}`;
+    }
+
+    // ===== Helpers de badges/colores =====
+    const locPill = (val)=> norm(val)==='planta' ? `<span class="badge-pill pill-pla">🏥 Planta</span>` : `<span class="badge-pill pill-urg">🚑 Urgencias</span>`;
+    const tratPillClass = (val)=> ({'médico':'pill-trat-med','medico':'pill-trat-med','iq local':'pill-trat-loc','iq general':'pill-trat-gen','drenaje':'pill-trat-dre'}[norm(val)]||'pill-trat-med');
+    const estadoPillClass = (val)=> ({'pendiente':'pill-estado-pte','ingresado':'pill-estado-ing','alta':'pill-estado-alt'}[norm(val)]||'pill-estado-pte');
+
+    function iconTrat(v){
+      switch(norm(v)){
+        case 'iq local': return '🧷';
+        case 'iq general': return '🔪';
+        case 'drenaje': return '🟣';
+        default: return '💊';
+      }
+    }
+    function iconEstado(v){
+      switch(norm(v)){
+        case 'ingresado': return '🏥';
+        case 'alta': return '✅';
+        default: return '🟡';
+      }
+    }
+
+    function colorizeSelect(el){
+      if(!el) return; el.classList.remove('select-trat-med','select-trat-loc','select-trat-gen','select-trat-dre','select-est-pte','select-est-ing','select-est-alt');
+      const v = el.value;
+      if(el.dataset.inline.endsWith('|trat')){
+        el.classList.add('colored', {'Médico':'select-trat-med','IQ Local':'select-trat-loc','IQ General':'select-trat-gen','Drenaje':'select-trat-dre'}[v]||'select-trat-med');
+      } else {
+        el.classList.add('colored', {'Pendiente':'select-est-pte','Ingresado':'select-est-ing','Alta':'select-est-alt'}[v]||'select-est-pte');
+      }
+    }
+
+    // ===== Render tabla =====
+    function renderTable(){
+      tbody.innerHTML='';
+      const items = pacientesCache.filter(p=>{
+        const est = (p.estado||'Pendiente');
+        if(currentFilter==='todos') return true;
+        if(currentFilter==='pendientes') return (norm(est)==='pendiente');
+        if(currentFilter==='resueltos')  return (norm(est)==='alta' || norm(est)==='ingresado');
+      });
+
+      items.forEach(p=>{
+        const tr = document.createElement('tr');
+        const tratSel = `<select class='form-select form-select-sm' data-inline='${p.id}|trat'>${['Médico','IQ Local','IQ General','Drenaje'].map(o=>`<option ${o===(p.trat||'Médico')?'selected':''}>${o}</option>`).join('')}</select>`;
+        const estSel  = `<select class='form-select form-select-sm' data-inline='${p.id}|estado'>${['Pendiente','Ingresado','Alta'].map(o=>`<option ${o===(p.estado||'Pendiente')?'selected':''}>${o}</option>`).join('')}</select>`;
+        const tratRead = `<span class="badge-pill ${tratPillClass(p.trat||'Médico')}">${iconTrat(p.trat)} ${esc(p.trat||'Médico')}</span>`;
+        const estRead = `<span class="badge-pill ${estadoPillClass(p.estado||'Pendiente')}">${iconEstado(p.estado)} ${esc(p.estado||'Pendiente')}</span>`;
+        tr.innerHTML = `
+          <td>${locPill(p.ubicacion||'Urgencias')}</td>
+          <td>${viewingArchived ? esc(p.sitio||'') : `<span class='editable' data-edittext='${p.id}|sitio'>${esc(p.sitio||'')}</span>`}</td>
+          <td>${viewingArchived ? esc(p.nombre||'') : `<span class='editable' data-edittext='${p.id}|nombre'>${esc(p.nombre||'')}</span>`}</td>
+          <td>${viewingArchived ? esc(p.dx||'') : `<span class='editable' data-edittext='${p.id}|dx'>${esc(p.dx||'')}</span>`}</td>
+          <td>${viewingArchived ? tratRead : tratSel}</td>
+          <td>${viewingArchived ? esc(p.com||'') : `<span class='editable' data-edittext='${p.id}|com'>${esc(p.com||'')}</span>`}</td>
+          <td>${viewingArchived ? estRead : estSel}</td>
+          <td class="text-end table-actions">${!viewingArchived?`
+            <button class='btn btn-sm btn-outline-primary me-1' data-edit='${p.id}' title='Editar'><i class='bi bi-pencil'></i></button>
+            <button class='btn btn-sm btn-outline-danger' data-del='${p.id}' title='Borrar'><i class='bi bi-trash'></i></button>`:''}
+          </td>`;
+        if(!viewingArchived){
+          tr.querySelector('[data-edit]')?.addEventListener('click', ()=> openPatientForm(p));
+          tr.querySelector('[data-del]')?.addEventListener('click', ()=> handleDelete(p.id));
+          tr.querySelectorAll('select[data-inline]').forEach(colorizeSelect);
+        }
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Edición inline de texto (nombre, dx, sitio, com)
+    document.addEventListener('click', (e)=>{
+      const span = e.target.closest('[data-edittext]');
+      if(!span || viewingArchived) return;
+      startInlineEdit(span);
+    });
+
+    function makeEditableSpan(id, field, val){
+      const s = document.createElement('span');
+      s.className = 'editable';
+      s.dataset.edittext = `${id}|${field}`;
+      s.textContent = val||'';
+      return s;
+    }
+
+    function startInlineEdit(span){
+      const [id, field] = span.dataset.edittext.split('|');
+      const current = span.textContent;
+      const isMultiline = (field==='com');
+      const input = isMultiline ? document.createElement('textarea') : document.createElement('input');
+      if(!isMultiline) input.type='text';
+      input.className = 'form-control form-control-sm';
+      input.value = current;
+      if(isMultiline){ input.rows = 3; }
+      span.replaceWith(input);
+      input.focus();
+      if(!isMultiline){ input.select(); }
+      const commit = async ()=>{
+        const val = input.value.trim();
+        try{
+          await updateDoc(doc(db,'guardias_activas',currentGuardiaId,'pacientes',id), { [field]: val, updatedAt: serverTimestamp() });
+          input.replaceWith(makeEditableSpan(id, field, val));
+        }catch(err){ console.error(err); input.replaceWith(makeEditableSpan(id, field, current)); alert('No se pudo guardar el cambio.'); }
+      };
+      const cancel = ()=>{ input.replaceWith(makeEditableSpan(id, field, current)); };
+      input.addEventListener('keydown', (ev)=>{ if(ev.key==='Enter' && !isMultiline){ ev.preventDefault(); commit(); } else if(ev.key==='Escape'){ ev.preventDefault(); cancel(); }});
+      input.addEventListener('blur', commit);
+    }
+
+    // Guardado inline (selects) + recolor
+    document.addEventListener('change', async (e)=>{
+      const el = e.target.closest('[data-inline]');
+      if(!el || viewingArchived) return;
+      colorizeSelect(el);
+      const [id, field] = el.dataset.inline.split('|');
+      await updateDoc(doc(db,'guardias_activas',currentGuardiaId,'pacientes',id),{ [field]: el.value, updatedAt: serverTimestamp() });
+    });
+
+    // ===== Resumen =====
+    function updateSummary(){
+      const by = (fn)=> pacientesCache.filter(fn).length;
+      const total = pacientesCache.length;
+      document.getElementById('sum-total').textContent = total;
+      document.getElementById('sum-urg').textContent   = by(p=> norm(p.ubicacion||'Urgencias')==='urgencias');
+      document.getElementById('sum-planta').textContent= by(p=> norm(p.ubicacion)==='planta');
+      document.getElementById('sum-alta').textContent  = by(p=> norm(p.estado)==='alta');
+      document.getElementById('sum-ing').textContent   = by(p=> norm(p.estado)==='ingresado');
+      document.getElementById('sum-pte').textContent   = by(p=> norm(p.estado||'Pendiente')==='pendiente');
+      document.getElementById('sum-iq-total').textContent = by(p=>['iq local','iq general','drenaje'].includes(norm(p.trat)));
+      document.getElementById('sum-iq-gen').textContent   = by(p=> norm(p.trat)==='iq general');
+      document.getElementById('sum-iq-loc').textContent   = by(p=> norm(p.trat)==='iq local');
+      document.getElementById('sum-iq-dren').textContent  = by(p=> norm(p.trat)==='drenaje');
+    }
+
+    // ===== CRUD modal =====
+    function openPatientForm(p=null){ if(viewingArchived) return; fillForm(p||{}); patientModal.show(); }
+    function fillForm(p){
+      document.getElementById('patient-id').value = p.id || '';
+      document.getElementById('p-nombre').value   = p.nombre || '';
+      document.getElementById('p-dx').value       = p.dx || '';
+      document.getElementById('p-trat').value     = p.trat || 'Médico';
+      document.getElementById('p-ubic').value     = p.ubicacion || 'Urgencias';
+      document.getElementById('p-sitio').value    = p.sitio || '';
+      document.getElementById('p-estado').value   = p.estado || 'Pendiente';
+      document.getElementById('p-com').value      = p.com || '';
+    }
+
+    async function savePatient(){
+      if(viewingArchived) return;
+      const id   = document.getElementById('patient-id').value;
+      const data = {
+        nombre: document.getElementById('p-nombre').value,
+        dx: document.getElementById('p-dx').value,
+        trat: document.getElementById('p-trat').value,
+        ubicacion: document.getElementById('p-ubic').value,
+        sitio: document.getElementById('p-sitio').value,
+        estado: document.getElementById('p-estado').value,
+        com: document.getElementById('p-com').value,
+        updatedAt: serverTimestamp(),
+      };
+      try{
+        if(!currentGuardiaId) return;
+        if(id){ await updateDoc(doc(db,'guardias_activas',currentGuardiaId,'pacientes',id), data); }
+        else { await addDoc(collection(db,'guardias_activas',currentGuardiaId,'pacientes'), { ...data, createdAt: serverTimestamp() }); }
+        patientModal.hide();
+      }catch(err){ console.error(err); alert('No se pudo guardar.'); }
+    }
+
+    async function handleDelete(id){ if(viewingArchived) return; if(!confirm('¿Eliminar paciente?')) return; await deleteDoc(doc(db,'guardias_activas',currentGuardiaId,'pacientes',id)); }
+
+    // ===== Finalizar guardia (modal + archivado real) =====
+    async function finalizeGuardia(){
+      if(viewingArchived) return;
+      finishModal.hide();
+      const batch = writeBatch(db);
+
+      // 1) Crear guardia archivada
+      const archRef = await addDoc(collection(db,'guardias_archivadas'), { createdAt: serverTimestamp(), fromGuardId: currentGuardiaId, startDate: new Date(), closedAt: new Date() });
+      const archId = archRef.id;
+
+      // 2) Copiar pacientes
+      for (const p of pacientesCache){ const dest = doc(collection(db,'guardias_archivadas', archId, 'pacientes')); batch.set(dest, p); }
+
+      // 3) Vaciar guardia activa
+      const ps = await getDocs(collection(db,'guardias_activas', currentGuardiaId, 'pacientes'));
+      ps.forEach(d=> batch.delete(d.ref));
+      await batch.commit();
+
+      // 4) Crear nueva guardia activa y set app_state
+      const newGuard = await addDoc(collection(db,'guardias_activas'), { createdAt: serverTimestamp(), startDate: new Date() });
+      await setDoc(doc(db,'app_state','current_guard'), { activeGuardiaId: newGuard.id, startDate: new Date() });
+      await loadGuardiaData();
+    }
+
+    // ===== Importar archivada -> copiar pacientes a activa =====
+    async function openImportModal(){
+      if(viewingArchived) return;
+      const body = document.getElementById('archive-list-body');
+      body.innerHTML = '<div class="text-muted">Cargando…</div>';
+
+      const snap = await getDocs(collection(db,'guardias_archivadas'));
+      const items = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(items.length===0){ body.innerHTML = '<div class="text-muted">No hay guardias archivadas.</div>'; archiveListModal.show(); return; }
+
+      // Agrupar por día (yyyy-mm-dd)
+      const map = new Map();
+      items.forEach(it=>{
+        const d = toDate(it.closedAt||it.startDate);
+        const key = ymd(d||new Date(0));
+        if(!map.has(key)) map.set(key, []);
+        map.get(key).push(it);
+      });
+
+      // Construir lista por fecha (solo fecha)
+      const days = Array.from(map.keys()).sort((a,b)=> b.localeCompare(a));
+      const wrapper = document.createElement('div');
+      wrapper.className = 'list-group';
+      days.forEach(k=>{
+        const a = document.createElement('a');
+        a.href = '#';
+        a.className = 'list-group-item list-group-item-action';
+        a.textContent = pretty(new Date(k));
+        a.addEventListener('click', async (e)=>{
+          e.preventDefault();
+          const chosen = map.get(k)[0];
+          await importArchivedPatients(chosen.id);
+          archiveListModal.hide();
+        });
+        wrapper.appendChild(a);
+      });
+      body.innerHTML = '';
+      body.appendChild(wrapper);
+      archiveListModal.show();
+    }
+
+    async function importArchivedPatients(archId){
+      if(!currentGuardiaId) return;
+      const snap = await getDocs(collection(db,'guardias_archivadas', archId, 'pacientes'));
+      const batch = writeBatch(db);
+      snap.forEach(s=>{ const d=s.data(); const dest=doc(collection(db,'guardias_activas', currentGuardiaId, 'pacientes')); batch.set(dest, {
+        nombre:d.nombre||'', dx:d.dx||'', trat:d.trat||'Médico', ubicacion:d.ubicacion||'Urgencias', sitio:d.sitio||'',
+        estado:d.estado||'Pendiente', com:d.com||'', importedFrom: archId, importedAt: serverTimestamp(), createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+      }); });
+      await batch.commit();
+      alert('Guardia importada en la actual.');
+    }
+  </script>
+</body>
+</html>

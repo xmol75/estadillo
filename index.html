@@ -1,0 +1,293 @@
+<!-- ===============================
+FILE: index.html  (LOGIN / REGISTRO con pestañas + mejoras UX + límite de intentos + reset @ssib.es)
+=============================== -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estadillo de Guardia - Acceso</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  <style>
+    :root { --card-pad: 1.25rem; }
+    body { background: #f8f9fa; }
+    /* Password toggle dentro del cuadro usando input-group */
+    .password-group .btn.password-toggle { border-color: #ced4da; }
+    .password-group .btn.password-toggle:focus { box-shadow: none; }
+    .password-group .form-control { border-right: 0; }
+    .password-group .btn.password-toggle { border-left: 0; }
+
+    /* Barra fuerza */
+    .strength-bar { height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; }
+    .strength-bar > div { height: 100%; width: 0%; transition: width .25s ease; }
+    .strength-1 { background:#dc3545; }
+    .strength-2 { background:#fd7e14; }
+    .strength-3 { background:#ffc107; }
+    .strength-4 { background:#198754; }
+  </style>
+</head>
+<body>
+  <div class="container my-4">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="text-center mb-3">
+          <h2>Estadillo de Guardia de Cirugía</h2>
+          <p class="text-muted mb-0">Hospital Universitari Son Espases</p>
+        </div>
+
+        <div class="card shadow-sm">
+          <div class="card-body" style="padding: var(--card-pad)">
+            <!-- Pestañas -->
+            <ul class="nav nav-tabs" id="authTabs" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane" type="button" role="tab">Acceder</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-pane" type="button" role="tab">Registro</button>
+              </li>
+            </ul>
+
+            <div class="tab-content pt-3">
+              <!-- LOGIN -->
+              <div class="tab-pane fade show active" id="login-pane" role="tabpanel">
+                <form id="login-form" novalidate>
+                  <div class="mb-3">
+                    <label for="login-email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="login-email" required />
+                  </div>
+                  <div class="mb-2">
+                    <label for="login-password" class="form-label">Contraseña</label>
+                    <div class="input-group password-group">
+                      <input type="password" class="form-control" id="login-password" required />
+                      <button type="button" class="btn btn-outline-secondary password-toggle" id="toggle-login-password" title="Mostrar/ocultar">
+                        <i class="bi bi-eye-slash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <a href="#" id="forgot-link" class="small">¿Has olvidado la contraseña?</a>
+                  </div>
+                  <button type="submit" id="login-btn" class="btn btn-primary w-100">
+                    <span class="btn-text">Entrar</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  </button>
+                  <div id="login-error" class="text-danger mt-2"></div>
+                </form>
+              </div>
+
+              <!-- REGISTRO -->
+              <div class="tab-pane fade" id="register-pane" role="tabpanel">
+                <form id="register-form" novalidate>
+                  <div class="mb-3">
+                    <label for="register-email" class="form-label">Email corporativo (@ssib.es)</label>
+                    <input type="email" class="form-control" id="register-email" required />
+                  </div>
+                  <div class="mb-1">
+                    <label for="register-password" class="form-label">Contraseña</label>
+                    <div class="input-group password-group">
+                      <input type="password" class="form-control" id="register-password" required />
+                      <button type="button" class="btn btn-outline-secondary password-toggle" id="toggle-register-password" title="Mostrar/ocultar">
+                        <i class="bi bi-eye-slash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="mb-2">
+                    <div class="strength-bar"><div id="strength-fill"></div></div>
+                    <div id="password-hint" class="form-text"></div>
+                  </div>
+                  <div id="password-rules" class="form-text mb-3">
+                    Requisitos: mínimo 8 caracteres, 1 mayúscula, 1 número y 1 símbolo.
+                  </div>
+                  <button type="submit" id="register-btn" class="btn btn-success w-100">
+                    <span class="btn-text">Registrarse</span>
+                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  </button>
+                  <div id="register-error" class="text-danger mt-2"></div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal reset password -->
+  <div class="modal fade" id="resetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Recuperar contraseña</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label" for="reset-email">Email</label>
+          <input id="reset-email" type="email" class="form-control" placeholder="tu@ssib.es" />
+          <div id="reset-msg" class="small mt-2"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="reset-send-btn" class="btn btn-primary">Enviar enlace</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    // --- CONFIG FIREBASE ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBHXJyws_bbbgn8qfkhSwtsqMI6KD8wT_c",
+      authDomain: "estadillo-e5cdc.firebaseapp.com",
+      projectId: "estadillo-e5cdc",
+      storageBucket: "estadillo-e5cdc.appspot.com",
+      messagingSenderId: "626738853027",
+      appId: "1:626738853027:web:5379647c00479b47107b16"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    await setPersistence(auth, browserLocalPersistence);
+
+    // Redirigir si ya logueado y verificado
+    onAuthStateChanged(auth, (user) => { if (user?.emailVerified) location.href = 'app.html'; });
+
+    // Helpers UI (botones con spinner)
+    function withLoading(btn, fn){
+      return async (...args) => {
+        const text = btn.querySelector('.btn-text');
+        const spn  = btn.querySelector('.spinner-border');
+        btn.disabled = true; if (spn) spn.classList.remove('d-none'); if (text) text.classList.add('invisible');
+        try { return await fn(...args); } finally { btn.disabled = false; if (spn) spn.classList.add('d-none'); if (text) text.classList.remove('invisible'); }
+      }
+    }
+
+    // Toggle ojos
+    function wiringToggle(btnId, inputId){
+      const btn = document.getElementById(btnId); const input = document.getElementById(inputId);
+      btn.addEventListener('click', ()=>{ const isPass = input.type==='password'; input.type = isPass ? 'text' : 'password'; btn.querySelector('i').className = isPass ? 'bi bi-eye' : 'bi bi-eye-slash'; });
+    }
+    wiringToggle('toggle-login-password','login-password');
+    wiringToggle('toggle-register-password','register-password');
+
+    // Mapa de errores legibles
+    const ERR = {
+      'auth/invalid-email': 'El email no es válido.',
+      'auth/missing-password': 'Introduce la contraseña.',
+      'auth/wrong-password': 'Contraseña incorrecta.',
+      'auth/user-not-found': 'No existe ninguna cuenta con ese email.',
+      'auth/email-already-in-use': 'Ese email ya está registrado.',
+      'auth/too-many-requests': 'Demasiados intentos. Prueba más tarde.',
+      'default': 'Ha ocurrido un error. Inténtalo de nuevo.'
+    };
+    const msg = (e)=> ERR[e?.code] || ERR.default;
+
+    // ====== Límite de intentos LOCAL (login y registro) ======
+    // Nota: esto NO sustituye a reCAPTCHA en servidor, pero ayuda a frenar ataques básicos.
+    const LIMIT = { MAX: 5, WINDOW_MS: 15*60*1000 };
+    function getList(key){ try { return JSON.parse(localStorage.getItem(key)||'[]'); } catch { return []; } }
+    function setList(key, list){ localStorage.setItem(key, JSON.stringify(list)); }
+    function purge(key){ const now = Date.now(); const list = getList(key).filter(ts => now - ts < LIMIT.WINDOW_MS); setList(key, list); return list; }
+    function canDo(key){ return purge(key).length < LIMIT.MAX; }
+    function record(key){ const list = purge(key); list.push(Date.now()); setList(key, list); }
+    function eta(key){ const list = purge(key); if (list.length < LIMIT.MAX) return 0; return LIMIT.WINDOW_MS - (Date.now() - list[0]); }
+
+    // LOGIN (con límite de intentos + limpieza contador al éxito + reenvío verificación)
+    const loginBtn = document.getElementById('login-btn');
+    document.getElementById('login-form').addEventListener('submit', withLoading(loginBtn, async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pass  = document.getElementById('login-password').value;
+      const errBox = document.getElementById('login-error'); errBox.textContent = '';
+
+      // Comprobar límite
+      if (!canDo('login_attempts')){
+        const min = Math.ceil(eta('login_attempts')/60000);
+        errBox.textContent = `Has alcanzado el límite de intentos. Prueba de nuevo en ~${min} min.`;
+        return;
+      }
+
+      try {
+        const cred = await signInWithEmailAndPassword(auth, email, pass);
+
+        if (!cred.user.emailVerified) {
+          // Ofrecer reenvío del email de verificación y NO penalizar intento
+          const resendId = `resend_${Date.now()}`;
+          errBox.innerHTML = `Debes verificar tu email antes de entrar. <a href="#" id="${resendId}">Reenviar verificación</a>`;
+          const a = document.getElementById(resendId);
+          a?.addEventListener('click', async (ev)=>{
+            ev.preventDefault();
+            try {
+              await sendEmailVerification(cred.user);
+              errBox.innerHTML = 'Te hemos reenviado el email de verificación. Revisa tu correo.';
+            } catch (e2) {
+              errBox.textContent = msg(e2);
+            } finally {
+              // Para evitar sesiones no verificadas abiertas
+              await signOut(auth);
+            }
+          }, { once: true });
+          return;
+        }
+
+        // Éxito: limpiar contador de intentos y entrar
+        localStorage.setItem('login_attempts', '[]');
+        location.href = 'app.html';
+      } catch (e) {
+        // Solo contamos intento cuando falla el login real
+        record('login_attempts');
+        errBox.textContent = msg(e);
+      }
+    }));
+
+    // RESET PASSWORD (forzado @ssib.es)
+    const resetModal = new bootstrap.Modal(document.getElementById('resetModal'));
+    document.getElementById('forgot-link').addEventListener('click', (e)=>{ e.preventDefault(); document.getElementById('reset-email').value = document.getElementById('login-email').value; document.getElementById('reset-msg').textContent=''; resetModal.show(); });
+    document.getElementById('reset-send-btn').addEventListener('click', async ()=>{
+      const email = document.getElementById('reset-email').value.trim();
+      const info  = document.getElementById('reset-msg'); info.className='small'; info.textContent='';
+      if (!email.endsWith('@ssib.es')) { info.classList.add('text-danger'); info.textContent = 'El email debe ser del dominio @ssib.es.'; return; }
+      try{ await sendPasswordResetEmail(auth, email); info.classList.add('text-success'); info.textContent = 'Enlace enviado. Revisa tu correo.'; }
+      catch(e){ info.classList.add('text-danger'); info.textContent = msg(e); }
+    });
+
+    // Registro: validación dominio + fuerza contraseña + límite de intentos
+    const strengthFill = document.getElementById('strength-fill');
+    const hint = document.getElementById('password-hint');
+    function passwordScore(p){ let s = 0; if (p.length >= 8) s++; if (/[A-Z]/.test(p)) s++; if (/[0-9]/.test(p)) s++; if (/[ @$!%*?&().,;:_-]/.test(p)) s++; return s; }
+    document.getElementById('register-password').addEventListener('input', (e)=>{
+      const p = e.target.value; const s = passwordScore(p); strengthFill.className=''; strengthFill.style.width = `${(s/4)*100}%`; strengthFill.classList.add(`strength-${Math.max(1,s)}`);
+      const labels=['Muy débil','Débil','Aceptable','Fuerte']; hint.textContent = p?`Fuerza: ${labels[s-1]||labels[0]}`:'';
+    });
+
+    const registerBtn = document.getElementById('register-btn');
+    document.getElementById('register-form').addEventListener('submit', withLoading(registerBtn, async (e)=>{
+      e.preventDefault();
+      const email = document.getElementById('register-email').value.trim();
+      const pass  = document.getElementById('register-password').value;
+      const errBox = document.getElementById('register-error'); errBox.textContent='';
+
+      if (!canDo('reg_attempts')){ const min = Math.ceil(eta('reg_attempts')/60000); errBox.textContent = `Has alcanzado el límite de intentos. Prueba de nuevo en ~${min} min.`; return; }
+      // Para registro contamos el intento ANTES para evitar bombardeo
+      record('reg_attempts');
+
+      if (!email.endsWith('@ssib.es')) { errBox.textContent = 'El email debe ser del dominio @ssib.es.'; return; }
+      const strong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[@$!%*?&().,;:_-])[A-Za-z0-9@$!%*?&().,;:_-]{8,}$/;
+      if (!strong.test(pass)) { errBox.textContent = 'La contraseña no cumple los requisitos.'; return; }
+
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, pass);
+        // Si el registro ha sido correcto, reseteamos contador
+        localStorage.setItem('reg_attempts', '[]');
+        await sendEmailVerification(cred.user);
+        alert('Registro correcto. Revisa tu correo para verificar la cuenta.');
+        document.getElementById('login-tab').click();
+      } catch (e) { errBox.textContent = msg(e); }
+    }));
+  </script>
+</body>
+</html>
